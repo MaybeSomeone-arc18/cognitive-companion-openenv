@@ -1,3 +1,12 @@
+---
+title: "Cognitive Companion OpenEnv"
+emoji: "🧠"
+colorFrom: "blue"
+colorTo: "green"
+sdk: "docker"
+sdk_version: "0.0.1"
+pinned: false
+---
 # Cognitive Companion: Intervention-Aware Work Environment
 *A simulation teaching AI agents when to intervene and when to stay out of the way.*
 
