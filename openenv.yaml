@@ -1,0 +1,25 @@
+name: "Cognitive Companion Environment"
+description: "A simulated work environment that tests AI agents on knowing when to intervene versus staying out of the way, based on human flow state and stuckness levels."
+endpoints:
+  reset:
+    path: "/reset"
+  step:
+    path: "/step"
+  state:
+    path: "/state"
+tasks:
+  - id: "easy"
+    name: "Low Frustration Scenario"
+    description: "Start with low frustration and ample time. Test basic boundary intervention timing."
+    difficulty: "easy"
+    grader: "graders.ScoreGrader"
+  - id: "medium"
+    name: "Moderate Frustration Scenario"
+    description: "Start moderately stuck with average time. Test immediate adaptation versus continuous disruptions."
+    difficulty: "medium"
+    grader: "graders.ScoreGrader"
+  - id: "hard"
+    name: "High Frustration Scenario"
+    description: "Start highly stuck with a strict time limit. Test urgent LLM crisis intervention reasoning."
+    difficulty: "hard"
+    grader: "graders.ScoreGrader"
