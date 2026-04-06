@@ -11,6 +11,15 @@ class ResetRequest(BaseModel):
     difficulty: str = "medium"
     clear_qtable: bool = False
 
+@app.get("/")
+def root():
+    return JSONResponse(
+        {
+            "name": "Cognitive Companion Environment",
+            "status": "ok",
+            "endpoints": ["/health", "/reset", "/step", "/state", "/qtable"],
+        }
+        
 @app.get("/health")
 def health():
     return {"status": "ok"}
