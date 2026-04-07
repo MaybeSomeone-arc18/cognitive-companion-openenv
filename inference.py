@@ -7,6 +7,7 @@ from typing import Optional
 from openai import OpenAI
 from models import Action
 from client import reset, step
+from graders import clamp_score  # ensure scores are strictly in (0, 1)
 
 
 # Environment + LLM configuration
@@ -90,7 +91,7 @@ def run() -> None:
             # Use safe_reset to avoid unhandled MaxRetryError / ConnectionRefusedError
             state = safe_reset(ENV_BASE_URL, difficulty=diff)
 
-            # If reset completely failed, emit [START] + [END] with 0 score and continue.
+            # If reset completely failed, emit [START] + [END] with clamped score and continue.
             if state is None:
                 start_payload = {
                     "episode": episode,
@@ -103,7 +104,7 @@ def run() -> None:
                     "episode": episode,
                     "task": diff,
                     "total_reward": 0.0,
-                    "score": 0.0,
+                    "score": clamp_score(0.0),
                     "note": "env_unreachable",
                 }
                 print(f"[END] {json.dumps(end_payload)}")
@@ -139,7 +140,7 @@ def run() -> None:
                         "episode": episode,
                         "task": diff,
                         "total_reward": total_reward,
-                        "score": 0.0,
+                        "score": clamp_score(0.0),
                         "note": "env_step_failed",
                     }
                     print(f"[END] {json.dumps(end_payload)}")
@@ -164,17 +165,18 @@ def run() -> None:
                 done = result.done
                 step_idx += 1
 
-            # If we exited the loop via done == True, compute a score normally.
-            if done:
-                final_progress = getattr(state, "progress", 0.0)
-                score = float(max(0.0, min(1.0, final_progress)))
-                end_payload = {
-                    "episode": episode,
-                    "task": diff,
-                    "total_reward": total_reward,
-                    "score": score,
-                }
-                print(f"[END] {json.dumps(end_payload)}")
+                # If we exited the loop via done == True, compute a score normally.
+                if done:
+                    final_progress = getattr(state, "progress", 0.0)
+                    raw_score = float(max(0.0, min(1.0, final_progress)))
+                    score = clamp_score(raw_score)
+                    end_payload = {
+                        "episode": episode,
+                        "task": diff,
+                        "total_reward": total_reward,
+                        "score": score,
+                    }
+                    print(f"[END] {json.dumps(end_payload)}")
 
 
 if __name__ == "__main__":
