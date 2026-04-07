@@ -3,15 +3,13 @@
 import json
 from typing import List, Dict, Any
 
-# We want a clear margin away from 0 and 1
-MIN_SCORE = 0.01
-MAX_SCORE = 0.99
+MIN_VALID_SCORE = 0.002   # 0.2%
+MAX_VALID_SCORE = 0.998   # 99.8%
 
 
 def clamp_score(raw_score: float) -> float:
     """
-    Clamp any raw score so that 0 < score < 1, with explicit
-    lower and upper bounds at 0.01 and 0.99.
+    Clamp any raw score so that MIN_VALID_SCORE < score < MAX_VALID_SCORE.
     """
     try:
         val = float(raw_score)
@@ -24,11 +22,17 @@ def clamp_score(raw_score: float) -> float:
     elif val > 1.0:
         val = 1.0
 
-    # Then enforce strict interior: (0, 1)
+    # Then enforce strict interior using the given min/max
     if val <= 0.0:
-        return MIN_SCORE
+        return MIN_VALID_SCORE
     if val >= 1.0:
-        return MAX_SCORE
+        return MAX_VALID_SCORE
+
+    # If already strictly inside (0,1), still bound to [MIN_VALID_SCORE, MAX_VALID_SCORE]
+    if val < MIN_VALID_SCORE:
+        return MIN_VALID_SCORE
+    if val > MAX_VALID_SCORE:
+        return MAX_VALID_SCORE
 
     return val
 
@@ -38,25 +42,22 @@ class ScoreGrader:
         """
         OpenEnv-compatible grader.
 
-        Takes a full trajectory (list of step dicts) and uses the final
-        state's 'progress' as the base score, then clamps it into (0, 1).
+        Uses the final state's 'progress' as base score, then clamps it
+        into (MIN_VALID_SCORE, MAX_VALID_SCORE).
         """
-        # No trajectory -> treat as worst case but not exactly 0
         if not trajectory:
-            return clamp_score(0.0)
+            raw_score = 0.0
+            return clamp_score(raw_score)
 
-        final_step = (trajectory[-1] or {})
-        final_state = (final_step.get("state", {}) or {})
+        final_step = trajectory[-1] or {}
+        final_state = final_step.get("state", {}) or {}
 
         progress = final_state.get("progress", 0.0)
+        raw_score = float(progress)
 
-        # Whatever progress is, final returned score is strictly (0, 1)
-        return clamp_score(progress)
+        final_score = clamp_score(raw_score)
+        return final_score
 
 
 def default_grader(trajectory) -> float:
-    """
-    Utility mapping for runner / OpenEnv.
-    Ensures any call through this also gets (0, 1).
-    """
     return ScoreGrader().grade(trajectory)
