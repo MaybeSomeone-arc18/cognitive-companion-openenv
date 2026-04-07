@@ -104,7 +104,7 @@ def run() -> None:
                     "episode": episode,
                     "task": diff,
                     "total_reward": 0.0,
-                    "score": clamp_score(0.0),
+                    "score": clamp_score(0.0),  # becomes 0.01
                     "note": "env_unreachable",
                 }
                 print(f"[END] {json.dumps(end_payload)}")
@@ -140,7 +140,7 @@ def run() -> None:
                         "episode": episode,
                         "task": diff,
                         "total_reward": total_reward,
-                        "score": clamp_score(0.0),
+                        "score": clamp_score(0.0),  # becomes 0.01
                         "note": "env_step_failed",
                     }
                     print(f"[END] {json.dumps(end_payload)}")
@@ -168,6 +168,7 @@ def run() -> None:
                 # If we exited the loop via done == True, compute a score normally.
                 if done:
                     final_progress = getattr(state, "progress", 0.0)
+                    # Bound into [0,1] then clamp to (0,1) using the same logic as the grader
                     raw_score = float(max(0.0, min(1.0, final_progress)))
                     score = clamp_score(raw_score)
                     end_payload = {
