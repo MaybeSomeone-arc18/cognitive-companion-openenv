@@ -4,20 +4,31 @@ import random
 from typing import Union
 from models import State, Action, StepResult
 
-# Clamp rewards to be strictly in (0, 1)
-EPS = 1e-2  # rewards will lie in [0.01, 0.99]
+# Reward bounds to mirror the score constraints
+MIN_REWARD = 0.01
+MAX_REWARD = 0.99
 
 
-def clamp_reward(raw: float, eps: float = EPS) -> float:
+def clamp_reward(raw: float) -> float:
     """
-    Clamp any raw reward to be strictly within (0, 1),
-    matching the hackathon's 'task score' constraints.
+    Clamp any raw reward so that 0 < reward < 1, with explicit
+    lower and upper bounds at 0.01 and 0.99.
     """
     val = float(raw)
-    # bound to [0, 1]
-    val = max(0.0, min(1.0, val))
-    # then push off edges into (0, 1)
-    return max(eps, min(1.0 - eps, val))
+
+    # First bound into [0, 1]
+    if val < 0.0:
+        val = 0.0
+    elif val > 1.0:
+        val = 1.0
+
+    # Then enforce strict interior: (0, 1)
+    if val <= 0.0:
+        return MIN_REWARD
+    if val >= 1.0:
+        return MAX_REWARD
+
+    return val
 
 
 class CognitiveCompanionEnv:
@@ -99,8 +110,8 @@ class CognitiveCompanionEnv:
         if s.time_left > 0:
             s.time_left -= 1
 
+        # If already done, no more progress; return minimal positive reward
         if s.progress >= 1.0 or s.time_left < 0:
-            # Episode already over; no additional reward
             reward = clamp_reward(0.0)
             return StepResult(state=s, reward=reward, done=True)
 
@@ -153,7 +164,7 @@ class CognitiveCompanionEnv:
 
         if s.progress >= 1.0:
             # Previously: reward = max(reward, 1.0)
-            # We still want a strong positive signal, but we'll clamp below.
+            # We still want a strong positive signal before clamping.
             reward = max(reward, 1.0)
 
         # FINAL: clamp reward into (0, 1) so any "task score" based on reward is valid
