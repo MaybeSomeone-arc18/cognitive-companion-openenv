@@ -7,7 +7,7 @@ from typing import Optional
 from openai import OpenAI
 from models import Action
 from client import reset, step
-from graders import clamp_score  # ensure scores are strictly in (0, 1)
+from graders import clamp_score  # same (0.002, 0.998) logic
 
 
 # Environment + LLM configuration
@@ -49,32 +49,22 @@ def get_action_from_llm(state_dict: dict) -> str:
         )
         act_str = response.choices[0].message.content.strip().lower()
         if act_str not in ["continue", "intervene", "switch_task"]:
-            act_str = "continue"  # fallback
+            act_str = "continue"
         return act_str
     except Exception:
-        # Fallback heuristic if LLM fails, to avoid stalling inference
         stuck = state_dict.get("stuck_level", 0.0)
         return "intervene" if stuck > 0.7 else "continue"
 
 
 def safe_reset(env_base_url: str, difficulty: str):
-    """
-    Wrapper around reset() that catches all network / client errors
-    and returns None instead of raising, so inference.py never crashes.
-    """
     try:
         return reset(env_base_url, difficulty=difficulty)
     except Exception as e:
-        # Emit a diagnostic line (not part of [START]/[STEP]/[END] protocol)
         print(f"[ERROR] reset failed for difficulty='{difficulty}': {e}")
         return None
 
 
 def safe_step(env_base_url: str, action: Action):
-    """
-    Wrapper around step() that catches all network / client errors
-    and returns None instead of raising.
-    """
     try:
         return step(env_base_url, action)
     except Exception as e:
@@ -88,10 +78,8 @@ def run() -> None:
 
     for diff in difficulties:
         for episode in range(1, episodes_per_diff + 1):
-            # Use safe_reset to avoid unhandled MaxRetryError / ConnectionRefusedError
             state = safe_reset(ENV_BASE_URL, difficulty=diff)
 
-            # If reset completely failed, emit [START] + [END] with clamped score and continue.
             if state is None:
                 start_payload = {
                     "episode": episode,
@@ -100,17 +88,17 @@ def run() -> None:
                 }
                 print(f"[START] {json.dumps(start_payload)}")
 
+                score = clamp_score(0.0)
                 end_payload = {
                     "episode": episode,
                     "task": diff,
                     "total_reward": 0.0,
-                    "score": clamp_score(0.0),  # becomes 0.01
+                    "score": score,
                     "note": "env_unreachable",
                 }
                 print(f"[END] {json.dumps(end_payload)}")
                 continue
 
-            # [START] log
             start_payload = {
                 "episode": episode,
                 "task": diff,
@@ -122,7 +110,6 @@ def run() -> None:
             step_idx = 1
 
             while not done:
-                # Pydantic v2: model_dump; v1: dict()
                 state_dict = (
                     state.model_dump()
                     if hasattr(state, "model_dump")
@@ -132,21 +119,19 @@ def run() -> None:
                 chosen_act_str = get_action_from_llm(state_dict)
                 act = Action(action=chosen_act_str)
 
-                # Use safe_step to avoid unhandled connection errors
                 result = safe_step(ENV_BASE_URL, act)
                 if result is None:
-                    # If step fails mid-episode, stop this episode gracefully.
+                    score = clamp_score(0.0)
                     end_payload = {
                         "episode": episode,
                         "task": diff,
                         "total_reward": total_reward,
-                        "score": clamp_score(0.0),  # becomes 0.01
+                        "score": score,
                         "note": "env_step_failed",
                     }
                     print(f"[END] {json.dumps(end_payload)}")
                     break
 
-                # [STEP] log
                 step_payload = {
                     "step": step_idx,
                     "state": state_dict,
@@ -165,10 +150,8 @@ def run() -> None:
                 done = result.done
                 step_idx += 1
 
-                # If we exited the loop via done == True, compute a score normally.
                 if done:
                     final_progress = getattr(state, "progress", 0.0)
-                    # Bound into [0,1] then clamp to (0,1) using the same logic as the grader
                     raw_score = float(max(0.0, min(1.0, final_progress)))
                     score = clamp_score(raw_score)
                     end_payload = {
