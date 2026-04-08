@@ -1,8 +1,11 @@
 # server/environment.py
 
 import random
-from typing import Union
-from models import State, Action, StepResult
+from typing import Union, Any, Dict, List, Optional
+
+from openenv.core.env_server import Environment
+
+from models import Action, CognitiveObservation, EnvState, StepResult
 
 MIN_VALID_SCORE = 0.002   # 0.2%
 MAX_VALID_SCORE = 0.998   # 99.8%
@@ -35,29 +38,48 @@ def clamp_reward(raw: float) -> float:
     return val
 
 
-class CognitiveCompanionEnv:
-    def __init__(self):
-        self.state_obj = None
+class CognitiveCompanionEnvironment(Environment[Action, CognitiveObservation, EnvState]):
+    """
+    OpenEnv-compatible environment for the Cognitive Companion.
 
-        # Embedded Q-Learning metrics
-        self.q_table = {}
-        self.history = []
-        self.alpha = 0.1
-        self.epsilon = 0.1
+    - reset() and step() return CognitiveObservation (with reward/done/metadata).
+    - state property returns EnvState.
+    """
 
+    SUPPORTS_CONCURRENT_SESSIONS = True
+
+    def __init__(self) -> None:
+        # Core episode state
+        self._obs: Optional[CognitiveObservation] = None
+        self._task_id: str = "medium"
+        self._step_idx: int = 0
+        self._max_steps: int = 30  # loose upper bound via time_left
+        self._done: bool = False
+        self._history: List[str] = []
+
+        # Embedded Q-Learning metrics (your original fields)
+        self.q_table: Dict[str, Dict[str, float]] = {}
+        self.alpha: float = 0.1
+        self.epsilon: float = 0.1
+
+        # Initialise one episode
         self.reset()
 
-    def _encode_state(self, state: State) -> str:
+    # ---------------------------------------------------------------------
+    # Internal helpers
+    # ---------------------------------------------------------------------
+
+    def _encode_state(self, obs: CognitiveObservation) -> str:
         """
         Bucketize state into a compact key for the Q-table.
         """
-        stuck_bucket = min(9, int(state.stuck_level * 10))
-        progress_bucket = min(9, int(state.progress * 10))
-        time_bucket = state.time_left // 5
+        stuck_bucket = min(9, int(obs.stuck_level * 10))
+        progress_bucket = min(9, int(obs.progress * 10))
+        time_bucket = obs.time_left // 5
 
-        return f"{state.task_type}_{stuck_bucket}_{progress_bucket}_{time_bucket}"
+        return f"{obs.task_type}_{stuck_bucket}_{progress_bucket}_{time_bucket}"
 
-    def _get_q_values(self, encoded_state: str) -> dict:
+    def _get_q_values(self, encoded_state: str) -> Dict[str, float]:
         if encoded_state not in self.q_table:
             self.q_table[encoded_state] = {
                 "continue": 0.0,
@@ -66,14 +88,37 @@ class CognitiveCompanionEnv:
             }
         return self.q_table[encoded_state]
 
-    def reset(self, difficulty: str = "medium", clear_qtable: bool = False) -> State:
-        if clear_qtable:
-            self.q_table = {}
-            self.history = []
+    # ---------------------------------------------------------------------
+    # OpenEnv interface
+    # ---------------------------------------------------------------------
 
-        # Normalise difficulty to the three declared tasks
+    def reset(
+        self,
+        seed: Optional[int] = None,
+        episode_id: Optional[str] = None,
+        **kwargs: Any,
+    ) -> CognitiveObservation:
+        """
+        Reset the environment.
+
+        Accepts difficulty via kwargs["difficulty"], matching openenv.yaml tasks:
+        - "easy"
+        - "medium"
+        - "hard"
+        """
+        difficulty = kwargs.get("difficulty", "medium")
+        clear_qtable = kwargs.get("clear_qtable", False)
+
+        if clear_qtable:
+            self.q_table.clear()
+            self._history.clear()
+
         if difficulty not in ("easy", "medium", "hard"):
             difficulty = "medium"
+
+        self._task_id = difficulty
+        self._step_idx = 0
+        self._done = False
 
         if difficulty == "easy":
             stuck_level = random.uniform(0.1, 0.3)
@@ -85,31 +130,37 @@ class CognitiveCompanionEnv:
             stuck_level = random.uniform(0.3, 0.6)
             time_left = 25
 
-        self.state_obj = State(
+        self._obs = CognitiveObservation(
             task_type=random.choice(["coding", "content"]),
             progress=0.0,
             stuck_level=stuck_level,
             time_left=time_left,
             intervention_available=True,
+            reward=None,
+            done=False,
+            metadata={"difficulty": self._task_id, "step": self._step_idx},
         )
 
-        return self.state_obj
+        # Use time_left as a soft upper bound for max_steps
+        self._max_steps = max(1, self._obs.time_left)
 
-    def state(self) -> State:
-        return self.state_obj
+        return self._obs
 
-    def step(self, action: Union[Action, str]) -> StepResult:
-        if isinstance(action, Action):
-            act_str = action.action
-        elif isinstance(action, str):
-            act_str = action
-        else:
-            raise ValueError(f"Invalid action type: {type(action)}")
+    def step(self, action: Action) -> CognitiveObservation:
+        """
+        Apply an action and return the next observation.
+        """
+        if self._obs is None:
+            raise RuntimeError("Call reset() before step()")
 
-        old_state_enc = self._encode_state(self.state_obj)
+        if self._done:
+            raise RuntimeError("Episode is finished")
 
-        s = self.state_obj
+        s = self._obs
+        act_str = action.action
         reward = 0.0
+
+        old_state_enc = self._encode_state(s)
 
         if s.time_left > 0:
             s.time_left -= 1
@@ -117,7 +168,17 @@ class CognitiveCompanionEnv:
         # Already terminal
         if s.progress >= 1.0 or s.time_left <= 0:
             reward = clamp_reward(0.0)
-            return StepResult(state=s, reward=reward, done=True)
+            self._done = True
+            s.reward = reward
+            s.done = True
+            s.metadata = {
+                "difficulty": self._task_id,
+                "step": self._step_idx,
+                "reason": "terminal_before_action",
+            }
+            return s
+
+        # --- Your original transition logic, adapted to CognitiveObservation ---
 
         if act_str == "continue":
             base_inc = random.uniform(0.05, 0.15)
@@ -162,6 +223,7 @@ class CognitiveCompanionEnv:
         s.progress = float(max(0.0, min(1.0, s.progress)))
         s.stuck_level = float(max(0.0, min(1.0, s.stuck_level)))
 
+        self._step_idx += 1
         done = s.progress >= 1.0 or s.time_left <= 0
 
         if s.progress >= 1.0:
@@ -170,24 +232,66 @@ class CognitiveCompanionEnv:
         # FINAL: clamp reward into (MIN_VALID_SCORE, MAX_VALID_SCORE)
         reward = clamp_reward(reward)
 
+        # Q-table update
         q_vals = self._get_q_values(old_state_enc)
         current_q = q_vals[act_str]
         q_vals[act_str] = current_q + self.alpha * (reward - current_q)
 
-        self.history.append(
-            {
-                "state": old_state_enc,
-                "action": act_str,
-                "reward": reward,
-            }
+        # History
+        history_entry = f"step={self._step_idx}, action={act_str}, reward={reward:.3f}"
+        self._history.append(history_entry)
+
+        # Update observation with OpenEnv-style metadata
+        self._done = done
+        s.reward = reward
+        s.done = done
+        s.metadata = {
+            "difficulty": self._task_id,
+            "step": self._step_idx,
+            "state_key": self._encode_state(s),
+            "history_length": len(self._history),
+            "epsilon": self.epsilon,
+        }
+
+        self._obs = s
+        return self._obs
+
+    @property
+    def state(self) -> EnvState:
+        """
+        Return the current comprehensive state for OpenEnv.
+        """
+        return EnvState(
+            task_id=self._task_id,
+            step=self._step_idx,
+            max_steps=self._max_steps,
+            history=list(self._history),
+            done=self._done,
         )
 
+    # ---------------------------------------------------------------------
+    # Compatibility helper: keep your old StepResult shape for /step endpoint
+    # ---------------------------------------------------------------------
+
+    def step_legacy(self, action: Union[Action, str]) -> StepResult:
+        """
+        Wrapper that uses the OpenEnv step() internally but returns the
+        old StepResult shape for your existing HTTP client and logs.
+        """
+        if isinstance(action, str):
+            action = Action(action=action)
+
+        obs = self.step(action)
+
+        encoded = self._encode_state(obs)
+        q_vals = self._get_q_values(encoded)
+
         return StepResult(
-            state=s,
-            reward=reward,
-            done=done,
-            state_key=self._encode_state(s),
-            q_values=self._get_q_values(self._encode_state(s)),
-            history_length=len(self.history),
+            state=obs,
+            reward=obs.reward or 0.0,
+            done=obs.done or False,
+            state_key=encoded,
+            q_values=q_vals,
+            history_length=len(self._history),
             epsilon=self.epsilon,
         )
