@@ -38,7 +38,7 @@ def clamp_score(raw_score: float) -> float:
 
 
 class ScoreGrader:
-    def grade(self, trajectory: List[Dict[str, Any]]) -> float:
+    def grade(self, trajectory: List[Dict[str, Any]], **kwargs) -> float:
         """
         OpenEnv-compatible grader.
 
@@ -59,5 +59,5 @@ class ScoreGrader:
         return final_score
 
 
-def default_grader(trajectory) -> float:
-    return ScoreGrader().grade(trajectory)
+def default_grader(trajectory, **kwargs) -> float:
+    return ScoreGrader().grade(trajectory, **kwargs)

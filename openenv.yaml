@@ -82,7 +82,6 @@ tasks:
 scoring:
   reward_range: [0.0, 1.0]
   success_threshold: 0.5
-  score_formula: mean(step_rewards)
 
 constraints:
   max_runtime_seconds: 1200
