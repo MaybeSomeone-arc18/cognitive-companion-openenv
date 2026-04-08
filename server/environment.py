@@ -71,6 +71,10 @@ class CognitiveCompanionEnv:
             self.q_table = {}
             self.history = []
 
+        # Normalise difficulty to the three declared tasks
+        if difficulty not in ("easy", "medium", "hard"):
+            difficulty = "medium"
+
         if difficulty == "easy":
             stuck_level = random.uniform(0.1, 0.3)
             time_left = 30
@@ -111,7 +115,7 @@ class CognitiveCompanionEnv:
             s.time_left -= 1
 
         # Already terminal
-        if s.progress >= 1.0 or s.time_left < 0:
+        if s.progress >= 1.0 or s.time_left <= 0:
             reward = clamp_reward(0.0)
             return StepResult(state=s, reward=reward, done=True)
 
