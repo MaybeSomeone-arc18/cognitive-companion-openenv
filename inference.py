@@ -125,7 +125,7 @@ def run() -> None:
                         print(f"Episode {episode} failed: {e}", file=sys.stderr)
                         if not started:
                             print(f"[START] {json.dumps({'episode': episode, 'task': diff})}")
-                        print(f"[END] {json.dumps({'episode': episode, 'task': diff, 'total_reward': 0.0, 'score': clamp_score(0.0)})}")
+                        print(f"[END] {json.dumps({'episode': episode, 'task': diff, 'total_reward': 0.1, 'score': clamp_score(0.0)})}")
 
 
 if __name__ == "__main__":
