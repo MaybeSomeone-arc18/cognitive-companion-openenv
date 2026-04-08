@@ -106,7 +106,7 @@ def run() -> None:
                     last_obs = obs
                     step_idx += 1
 
-                    reward_val = clamp_score(obs.reward if obs.reward is not None else 0.01)
+                    reward_val = clamp_score(obs.reward if obs.reward is not None else MIN_VALID_SCORE)
                     reward_values.append(reward_val)
                     rewards.append(_fmt_reward(reward_val))
                     done = bool(obs.done)
@@ -137,7 +137,7 @@ def run() -> None:
         success = bool(final_score >= 0.5 and last_error is None)
 
         if not rewards:
-            rewards = [_fmt_reward(0.01)]
+            rewards = [_fmt_reward(MIN_VALID_SCORE)]
 
         print(
             f"[END]   success={_bool_str(success)} steps={step_idx} rewards={','.join(rewards)}"

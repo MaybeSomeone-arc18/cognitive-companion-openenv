@@ -2,8 +2,8 @@
 
 from typing import List, Dict, Any
 
-MIN_VALID_SCORE = 0.01
-MAX_VALID_SCORE = 0.99
+MIN_VALID_SCORE = 0.1
+MAX_VALID_SCORE = 0.9
 
 
 def safe_task_score(raw: float) -> float:
