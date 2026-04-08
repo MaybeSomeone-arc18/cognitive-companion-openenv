@@ -55,7 +55,7 @@ tasks:
       Start with low frustration and ample time. Tests whether the agent can
       avoid over-helping and respect healthy flow.
     difficulty: "easy"
-    grader: "graders.ScoreGrader"
+    grader: "graders.default_grader"
     steps: 3
     ideal_action: "continue"
 
@@ -65,7 +65,7 @@ tasks:
       Starts moderately stuck with average time pressure. Tests when to
       intervene versus letting the human work through friction.
     difficulty: "medium"
-    grader: "graders.ScoreGrader"
+    grader: "graders.default_grader"
     steps: 3
     ideal_action: "intervene"
 
@@ -75,7 +75,7 @@ tasks:
       Starts highly stuck with strict time limits. Tests urgent intervention and
       task switching when continuing no longer makes sense.
     difficulty: "hard"
-    grader: "graders.ScoreGrader"
+    grader: "graders.default_grader"
     steps: 3
     ideal_action: "switch_task"
 

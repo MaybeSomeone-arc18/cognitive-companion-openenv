@@ -16,6 +16,22 @@ class CognitiveCompanionClient(EnvClient[Action, CognitiveObservation, EnvState]
     def from_base_url(cls, base_url: str) -> "CognitiveCompanionClient":
         return cls(base_url=base_url)
 
+    def _parse_state(self, state: dict) -> EnvState:
+        return EnvState(**state)
+
+    def _parse_result(self, result: dict) -> CognitiveObservation:
+        obs = result.get("observation") or result.get("state") or result
+        if isinstance(obs, dict):
+            if "reward" in result and "reward" not in obs:
+                obs["reward"] = result["reward"]
+            if "done" in result and "done" not in obs:
+                obs["done"] = result["done"]
+            return CognitiveObservation(**obs)
+        return CognitiveObservation(**result)
+
+    def _step_payload(self, action: Action) -> dict:
+        return action.model_dump()
+
 
 # For compatibility with your existing code, keep simple helpers.
 
