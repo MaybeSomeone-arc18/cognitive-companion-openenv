@@ -5,7 +5,7 @@ from openai import OpenAI
 
 from models import Action, CognitiveObservation
 from client import CognitiveCompanionClient
-from graders import clamp_score, safe_task_score, MIN_VALID_SCORE
+from graders import clamp_score, safe_task_score, MIN_VALID_SCORE, MAX_VALID_SCORE
 
 
 ENV_BASE_URL = os.environ.get("ENV_BASE_URL", "http://localhost:7860")
@@ -133,7 +133,7 @@ def run() -> None:
         else:
             raw_score = -0.5
         final_score = safe_task_score(raw_score)
-        assert 0.0 < final_score < 1.0
+        assert MIN_VALID_SCORE <= final_score <= MAX_VALID_SCORE
         success = bool(final_score >= 0.5 and last_error is None)
 
         if not rewards:

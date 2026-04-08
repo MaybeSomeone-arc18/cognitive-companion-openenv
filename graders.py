@@ -9,17 +9,17 @@ MAX_VALID_SCORE = 0.99
 def safe_task_score(raw: float) -> float:
     """
     Map a raw performance signal to a dynamic, safe task score:
-    raw (-1..1-ish) -> normalized [0,1] -> shrunk [0.1,0.9] -> clamped (0.01,0.99).
+    raw (bounded by +/- MAX_VALID_SCORE) -> normalized safe span -> clamped safe score.
     """
     try:
         raw_val = float(raw)
     except (TypeError, ValueError):
-        raw_val = -1.0
-    normalized = (raw_val + 1.0) / 2.0
-    normalized = max(0.0, min(normalized, 1.0))
-    score = 0.1 + (0.8 * normalized)
+        raw_val = -MAX_VALID_SCORE
+    bounded_raw = max(-MAX_VALID_SCORE, min(raw_val, MAX_VALID_SCORE))
+    normalized = (bounded_raw + MAX_VALID_SCORE) / (2.0 * MAX_VALID_SCORE)
+    score = MIN_VALID_SCORE + ((MAX_VALID_SCORE - MIN_VALID_SCORE) * normalized)
     score = max(MIN_VALID_SCORE, min(score, MAX_VALID_SCORE))
-    assert 0.0 < score < 1.0
+    assert MIN_VALID_SCORE <= score <= MAX_VALID_SCORE
     return score
 
 
@@ -29,20 +29,20 @@ def clamp_score(raw_score: float) -> float:
     except (TypeError, ValueError):
         score = MIN_VALID_SCORE
     score = max(MIN_VALID_SCORE, min(score, MAX_VALID_SCORE))
-    assert 0.0 < score < 1.0
+    assert MIN_VALID_SCORE <= score <= MAX_VALID_SCORE
     return score
 
 
 class ScoreGrader:
     def grade(self, trajectory: List[Dict[str, Any]], **kwargs) -> float:
-        raw_score = 0.0
+        raw_score = MIN_VALID_SCORE
         if not trajectory:
             return clamp_score(raw_score)
 
         final_step = trajectory[-1]
         
         # Safely extract progress regardless of if final_step is dict or object
-        progress = 0.0
+        progress = MIN_VALID_SCORE
         try:
             if isinstance(final_step, dict):
                 final_state = final_step.get("state", final_step.get("observation", final_step))
@@ -57,9 +57,9 @@ class ScoreGrader:
                 else:
                     progress = getattr(final_state, "progress", 0)
         except Exception:
-            progress = 0.0
+            progress = MIN_VALID_SCORE
 
-        raw_score = float(progress or 0.0)
+        raw_score = float(progress or MIN_VALID_SCORE)
         return safe_task_score(raw_score)
 
 

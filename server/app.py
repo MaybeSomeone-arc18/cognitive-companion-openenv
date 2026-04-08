@@ -8,7 +8,7 @@ from openenv.core.env_server.http_server import create_app
 
 from models import Action, CognitiveObservation, EnvState, StepResult
 from server.environment import CognitiveCompanionEnvironment
-from graders import default_grader, safe_task_score
+from graders import default_grader, safe_task_score, MIN_VALID_SCORE, MAX_VALID_SCORE
 
 # OpenEnv FastAPI app
 openenv_app = create_app(
@@ -84,7 +84,7 @@ def grade_episode(payload: dict):
 
     raw = graders[task_id](episode_log)
     score = safe_task_score(float(raw))
-    assert 0.0 < score < 1.0
+    assert MIN_VALID_SCORE <= score <= MAX_VALID_SCORE
     return {"task_id": task_id, "score": score}
 
 

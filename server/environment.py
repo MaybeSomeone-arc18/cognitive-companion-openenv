@@ -57,9 +57,9 @@ class CognitiveCompanionEnvironment(Environment[Action, CognitiveObservation, En
     def _get_q_values(self, encoded_state: str) -> Dict[str, float]:
         if encoded_state not in self.q_table:
             self.q_table[encoded_state] = {
-                "continue": 0.0,
-                "intervene": 0.0,
-                "switch_task": 0.0,
+                "continue": MIN_VALID_SCORE,
+                "intervene": MIN_VALID_SCORE,
+                "switch_task": MIN_VALID_SCORE,
             }
         return self.q_table[encoded_state]
 
@@ -141,7 +141,7 @@ class CognitiveCompanionEnvironment(Environment[Action, CognitiveObservation, En
             s.time_left -= 1
 
         # Already terminal
-        if s.progress >= 1.0 or s.time_left <= 0:
+        if s.progress >= MAX_VALID_SCORE or s.time_left <= 0:
             reward = clamp_reward(MIN_VALID_SCORE)
             self._done = True
             s.reward = reward
@@ -157,7 +157,7 @@ class CognitiveCompanionEnvironment(Environment[Action, CognitiveObservation, En
 
         if act_str == "continue":
             base_inc = random.uniform(0.05, 0.15)
-            actual_inc = base_inc * (1.0 - s.stuck_level)
+            actual_inc = base_inc * (MAX_VALID_SCORE - s.stuck_level)
             s.progress += actual_inc
 
             if s.stuck_level > 0.7:
@@ -176,7 +176,7 @@ class CognitiveCompanionEnvironment(Environment[Action, CognitiveObservation, En
                 s.stuck_level -= random.uniform(0.3, 0.6)
                 reward = random.uniform(0.5, 0.6)
             else:
-                s.progress += random.uniform(0.0, 0.02)
+                s.progress += random.uniform(MIN_VALID_SCORE, 0.02)
                 s.stuck_level += random.uniform(0.05, 0.15)
                 reward = -0.3
 
@@ -195,7 +195,7 @@ class CognitiveCompanionEnvironment(Environment[Action, CognitiveObservation, En
             raise ValueError(f"Unknown action: {act_str}")
 
         # Clamp state attributes
-        reached_goal = s.progress >= 1.0
+        reached_goal = s.progress >= MAX_VALID_SCORE
         s.progress = float(max(MIN_VALID_SCORE, min(MAX_VALID_SCORE, s.progress)))
         s.stuck_level = float(max(MIN_VALID_SCORE, min(MAX_VALID_SCORE, s.stuck_level)))
 
@@ -264,7 +264,7 @@ class CognitiveCompanionEnvironment(Environment[Action, CognitiveObservation, En
 
         return StepResult(
             state=obs,
-            reward=clamp_score(obs.reward if obs.reward is not None else 0.0),
+            reward=clamp_score(obs.reward if obs.reward is not None else MIN_VALID_SCORE),
             done=obs.done or False,
             state_key=encoded,
             q_values=q_vals,
