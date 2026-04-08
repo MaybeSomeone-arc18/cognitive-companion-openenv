@@ -1,17 +1,30 @@
+# server/app.py
+
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
-from models import State, Action, StepResult
-from server.environment import CognitiveCompanionEnv
 
+from openenv.core.env_server.http_server import create_app
+
+from models import Action, CognitiveObservation, EnvState, StepResult
+from server.environment import CognitiveCompanionEnvironment
+
+# OpenEnv FastAPI app
+openenv_app = create_app(
+    CognitiveCompanionEnvironment,
+    Action,
+    CognitiveObservation,
+    env_name="cognitive_companion",
+    max_concurrent_envs=10,
+)
+
+# Wrap in a top-level FastAPI so we can add extra endpoints if needed
 app = FastAPI(title="Cognitive Companion Environment")
 
-env = CognitiveCompanionEnv()
+# Mount the OpenEnv routes under root
+app.mount("", openenv_app)
 
-
-class ResetRequest(BaseModel):
-    difficulty: str = "medium"
-    clear_qtable: bool = False
+# Access to the underlying singleton environment for extras
+_env = CognitiveCompanionEnvironment()
 
 
 @app.get("/")
@@ -20,7 +33,7 @@ def root():
         {
             "name": "Cognitive Companion Environment",
             "status": "ok",
-            "endpoints": ["/health", "/reset", "/step", "/state", "/qtable"],
+            "endpoints": ["/health", "/reset", "/step", "/state", "/schema", "/ws", "/qtable"],
         }
     )
 
@@ -30,25 +43,9 @@ def health():
     return {"status": "ok"}
 
 
-@app.post("/reset", response_model=State)
-def reset(req: ResetRequest = ResetRequest()):
-    return env.reset(difficulty=req.difficulty, clear_qtable=req.clear_qtable)
-
-
-@app.post("/step", response_model=StepResult)
-def step(action: Action):
-    return env.step(action)
-
-
-@app.get("/state", response_model=State)
-def state():
-    return env.state()
-
-
 @app.get("/qtable")
 def get_qtable():
-    # Flattens natively hashed dicts mapping strictly into string parameters for seamless extraction frameworks.
-    serialized_qtable = {k: v for k, v in env.q_table.items()}
+    serialized_qtable = {k: v for k, v in _env.q_table.items()}
     return {"q_table": serialized_qtable}
 
 
