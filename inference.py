@@ -12,13 +12,18 @@ from graders import clamp_score  # same (0.002, 0.998) logic
 
 # Environment + LLM configuration
 ENV_BASE_URL = os.getenv("ENV_BASE_URL", "http://localhost:7860")
-API_BASE_URL = os.getenv("API_BASE_URL", "https://api.openai.com/v1")
-MODEL_NAME = os.getenv("MODEL_NAME", "gpt-3.5-turbo")
-HF_TOKEN = os.getenv("HF_TOKEN")
+
+# Use HF router by default, like the AiTrade example
+API_BASE_URL = os.getenv("API_BASE_URL", "https://router.huggingface.co/v1")
+
+# Default to a HF-instruct model; you can change this if you like
+MODEL_NAME = os.getenv("MODEL_NAME", "Qwen/Qwen2.5-7B-Instruct")
+
+HF_TOKEN = os.getenv("HF_TOKEN") or os.getenv("API_KEY")
 
 if HF_TOKEN is None or HF_TOKEN.strip() == "":
     raise RuntimeError(
-        "HF_TOKEN environment variable is not set. "
+        "HF_TOKEN (or API_KEY) environment variable is not set. "
         "Per submission rules, this must be provided with no default."
     )
 
@@ -47,7 +52,7 @@ def get_action_from_llm(state_dict: dict) -> str:
             ],
             temperature=0.0,
         )
-        act_str = response.choices[0].message.content.strip().lower()
+        act_str = (response.choices[0].message.content or "").strip().lower()
         if act_str not in ["continue", "intervene", "switch_task"]:
             act_str = "continue"
         return act_str
@@ -150,17 +155,17 @@ def run() -> None:
                 done = result.done
                 step_idx += 1
 
-                if done:
-                    final_progress = getattr(state, "progress", 0.0)
-                    raw_score = float(max(0.0, min(1.0, final_progress)))
-                    score = clamp_score(raw_score)
-                    end_payload = {
-                        "episode": episode,
-                        "task": diff,
-                        "total_reward": total_reward,
-                        "score": score,
-                    }
-                    print(f"[END] {json.dumps(end_payload)}")
+            if done:
+                final_progress = getattr(state, "progress", 0.0)
+                raw_score = float(max(0.0, min(1.0, final_progress)))
+                score = clamp_score(raw_score)
+                end_payload = {
+                    "episode": episode,
+                    "task": diff,
+                    "total_reward": total_reward,
+                    "score": score,
+                }
+                print(f"[END] {json.dumps(end_payload)}")
 
 
 if __name__ == "__main__":
