@@ -2,7 +2,7 @@
 
 from fastapi import FastAPI
 from fastapi import HTTPException
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, HTMLResponse
 
 from openenv.core.env_server.http_server import create_app
 
@@ -18,6 +18,20 @@ openenv_app = create_app(
     env_name="cognitive_companion",
     max_concurrent_envs=10,
 )
+
+
+@openenv_app.get("/", response_class=HTMLResponse)
+def openenv_root():
+    return """
+    <html>
+        <head><title>Cognitive Companion OpenEnv</title></head>
+        <body>
+            <h1>Cognitive Companion OpenEnv</h1>
+            <p>Space is running. Basic API is live.</p>
+            <p>Use endpoints: /reset, /step, /state, /health</p>
+        </body>
+    </html>
+    """
 
 # Wrap in a top-level FastAPI so we can add extra endpoints if needed
 app = FastAPI(title="Cognitive Companion Environment")
