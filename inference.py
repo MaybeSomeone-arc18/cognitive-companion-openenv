@@ -67,7 +67,7 @@ def run() -> None:
 
     for diff in difficulties:
         for episode in range(1, episodes_per_diff + 1):
-            max_retries = 3
+            max_retries = 10
             started = False
             for attempt in range(max_retries):
                 try:
@@ -119,7 +119,7 @@ def run() -> None:
                         break  # Break out of retry loop on success
                 except Exception as e:
                     if attempt < max_retries - 1:
-                        time.sleep(3)
+                        time.sleep(5)
                     else:
                         # Fallback after max_retries
                         print(f"Episode {episode} failed: {e}", file=sys.stderr)
