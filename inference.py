@@ -34,7 +34,7 @@ def _fmt_reward(value: float) -> str:
 def _safe_token(value: Optional[str]) -> str:
     if value is None:
         return "null"
-    return " ".join(str(value).split())
+    return str(value).replace("\n", " ").replace("\r", " ")
 
 
 def _load_tasks_from_openenv() -> List[str]:
@@ -120,7 +120,7 @@ def run() -> None:
                         last_error = str(raw_last_error)
 
                     print(
-                        f"[STEP] step={step_idx} action={_safe_token(action_str)} "
+                        f"[STEP]  step={step_idx} action={_safe_token(action_str)} "
                         f"reward={_fmt_reward(reward_val)} done={_bool_str(done)} error={error_val}"
                     )
         except Exception as exc:
@@ -140,7 +140,7 @@ def run() -> None:
             rewards = [_fmt_reward(0.01)]
 
         print(
-            f"[END]  success={_bool_str(success)} steps={step_idx} rewards={','.join(rewards)}"
+            f"[END]   success={_bool_str(success)} steps={step_idx} rewards={','.join(rewards)}"
         )
 
 
