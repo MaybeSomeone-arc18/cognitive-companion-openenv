@@ -10,8 +10,9 @@ def clamp_score(raw_score: float) -> float:
     try:
         score = float(raw_score)
     except (TypeError, ValueError):
-        return MIN_VALID_SCORE
+        score = MIN_VALID_SCORE
     score = max(MIN_VALID_SCORE, min(score, MAX_VALID_SCORE))
+    assert 0.0 < score < 1.0
     return score
 
 

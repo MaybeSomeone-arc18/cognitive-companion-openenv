@@ -126,6 +126,7 @@ def run() -> None:
 
         raw_score = last_obs.progress if last_obs is not None else 0.01
         final_score = max(0.01, min(float(raw_score), 0.99))
+        assert 0.0 < final_score < 1.0
         success = bool(final_score >= 0.5 and last_error is None)
 
         if not rewards:

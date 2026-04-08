@@ -70,6 +70,7 @@ def grade_episode(payload: dict):
 
     score = graders[task_id](episode_log)
     score = max(0.01, min(float(score), 0.99))
+    assert 0.0 < score < 1.0
     return {"task_id": task_id, "score": score}
 
 
