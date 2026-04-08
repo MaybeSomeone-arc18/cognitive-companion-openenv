@@ -1,48 +1,16 @@
 # server/environment.py
 
 import random
-import math
 from typing import Union, Any, Dict, List, Optional
 
 from openenv.core.env_server import Environment
 
 from models import Action, CognitiveObservation, EnvState, StepResult
-
-MIN_VALID_SCORE = 0.01
-MAX_VALID_SCORE = 0.99
+from graders import clamp_score, MIN_VALID_SCORE, MAX_VALID_SCORE
 
 
 def clamp_reward(raw: float) -> float:
-    """
-    Clamp any raw reward into the same (MIN_VALID_SCORE, MAX_VALID_SCORE)
-    band as scores, for safety.
-    """
-    try:
-        val = float(raw)
-    except (TypeError, ValueError):
-        val = MIN_VALID_SCORE
-
-    if not math.isfinite(val):
-        val = MIN_VALID_SCORE
-
-    # First bound into [0, 1]
-    if val < 0.0:
-        val = MIN_VALID_SCORE
-    elif val > 1.0:
-        val = MAX_VALID_SCORE
-
-    # Then enforce strict interior using the given min/max
-    if val <= MIN_VALID_SCORE:
-        return MIN_VALID_SCORE
-    if val >= MAX_VALID_SCORE:
-        return MAX_VALID_SCORE
-
-    if val < MIN_VALID_SCORE:
-        return MIN_VALID_SCORE
-    if val > MAX_VALID_SCORE:
-        return MAX_VALID_SCORE
-
-    return val
+    return clamp_score(raw)
 
 
 class CognitiveCompanionEnvironment(Environment[Action, CognitiveObservation, EnvState]):
@@ -296,7 +264,7 @@ class CognitiveCompanionEnvironment(Environment[Action, CognitiveObservation, En
 
         return StepResult(
             state=obs,
-            reward=obs.reward or MIN_VALID_SCORE,
+            reward=clamp_score(obs.reward if obs.reward is not None else 0.0),
             done=obs.done or False,
             state_key=encoded,
             q_values=q_vals,
