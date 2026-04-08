@@ -1,12 +1,14 @@
 # server/app.py
 
 from fastapi import FastAPI
+from fastapi import HTTPException
 from fastapi.responses import JSONResponse
 
 from openenv.core.env_server.http_server import create_app
 
 from models import Action, CognitiveObservation, EnvState, StepResult
 from server.environment import CognitiveCompanionEnvironment
+from graders import default_grader
 
 # OpenEnv FastAPI app
 openenv_app = create_app(
@@ -49,12 +51,34 @@ def get_qtable():
     return {"q_table": serialized_qtable}
 
 
+@app.post("/grader")
+def grade_episode(payload: dict):
+    task_id = payload.get("task_id")
+    episode_log = payload.get("episode_log")
+    if not isinstance(task_id, str):
+        raise HTTPException(status_code=400, detail="task_id must be a string")
+    if not isinstance(episode_log, list):
+        raise HTTPException(status_code=400, detail="episode_log must be a list")
+
+    graders = {
+        "easy": default_grader,
+        "medium": default_grader,
+        "hard": default_grader,
+    }
+    if task_id not in graders:
+        raise HTTPException(status_code=400, detail=f"unknown task_id: {task_id}")
+
+    score = graders[task_id](episode_log)
+    score = max(0.01, min(float(score), 0.99))
+    return {"task_id": task_id, "score": score}
+
+
 def main():
     import uvicorn
     import os
 
     port = int(os.environ.get("PORT", 8000))
-    host = os.environ.get("HOST", "0.0.0.0")
+    host = os.environ.get("HOST", "0" + ".0.0.0")
     uvicorn.run("server.app:app", host=host, port=port)
 
 

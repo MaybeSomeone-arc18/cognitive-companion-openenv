@@ -92,7 +92,7 @@ def run() -> None:
         step_idx = 0
         success = False
         last_error: Optional[str] = None
-        final_score = clamp_score(0.0)
+        final_score = 0.01
         last_obs: Optional[CognitiveObservation] = None
 
         try:
@@ -105,7 +105,7 @@ def run() -> None:
                     last_obs = obs
                     step_idx += 1
 
-                    reward_val = clamp_score(obs.reward if obs.reward is not None else 0.0)
+                    reward_val = clamp_score(obs.reward if obs.reward is not None else 0.01)
                     rewards.append(_fmt_reward(reward_val))
                     done = bool(obs.done)
 
@@ -124,12 +124,12 @@ def run() -> None:
         except Exception as exc:
             last_error = str(exc)
 
-        raw_score = last_obs.progress if last_obs is not None else 0.0
-        final_score = clamp_score(raw_score)
+        raw_score = last_obs.progress if last_obs is not None else 0.01
+        final_score = max(0.01, min(float(raw_score), 0.99))
         success = bool(final_score >= 0.5 and last_error is None)
 
         if not rewards:
-            rewards = [_fmt_reward(0.0)]
+            rewards = [_fmt_reward(0.01)]
 
         print(
             f"[END]  success={_bool_str(success)} steps={step_idx} rewards={','.join(rewards)}"

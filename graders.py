@@ -8,14 +8,11 @@ MAX_VALID_SCORE = 0.99
 
 def clamp_score(raw_score: float) -> float:
     try:
-        val = float(raw_score)
+        score = float(raw_score)
     except (TypeError, ValueError):
         return MIN_VALID_SCORE
-    if val < MIN_VALID_SCORE:
-        return MIN_VALID_SCORE
-    if val > MAX_VALID_SCORE:
-        return MAX_VALID_SCORE
-    return val
+    score = max(MIN_VALID_SCORE, min(score, MAX_VALID_SCORE))
+    return score
 
 
 class ScoreGrader:
