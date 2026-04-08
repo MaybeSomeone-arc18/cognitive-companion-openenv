@@ -8,8 +8,8 @@ from openenv.core.env_server import Environment
 
 from models import Action, CognitiveObservation, EnvState, StepResult
 
-MIN_VALID_SCORE = 1e-6
-MAX_VALID_SCORE = 1.0 - 1e-6
+MIN_VALID_SCORE = 0.01
+MAX_VALID_SCORE = 0.99
 
 
 def clamp_reward(raw: float) -> float:

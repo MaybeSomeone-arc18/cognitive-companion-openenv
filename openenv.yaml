@@ -80,7 +80,7 @@ tasks:
     ideal_action: "switch_task"
 
 scoring:
-  reward_range: [0.000001, 0.999999]
+  reward_range: [0.01, 0.99]
   success_threshold: 0.5
 
 constraints:

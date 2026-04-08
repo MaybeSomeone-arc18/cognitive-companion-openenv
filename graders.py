@@ -4,8 +4,10 @@ import json
 import math
 from typing import List, Dict, Any
 
-MIN_VALID_SCORE = 1e-6
-MAX_VALID_SCORE = 1.0 - 1e-6
+# Keep a visible margin from boundaries so downstream rounding
+# can never collapse scores to 0.0 or 1.0.
+MIN_VALID_SCORE = 0.01
+MAX_VALID_SCORE = 0.99
 
 
 def clamp_score(raw_score: float) -> float:
