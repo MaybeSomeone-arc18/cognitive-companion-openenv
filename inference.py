@@ -2,49 +2,44 @@
 
 import os
 import json
-from typing import Optional
+from typing import List, Optional
 
 from openai import OpenAI
-from models import Action
-from client import reset, step
-from graders import clamp_score  # same (0.002, 0.998) logic
+
+from models import Action, CognitiveObservation
+from client import CognitiveCompanionClient
+from graders import clamp_score
 
 
-# Environment + LLM configuration
-ENV_BASE_URL = os.getenv("ENV_BASE_URL", "http://localhost:7860")
-
-# Use HF router by default, like the AiTrade example
+ENV_BASE_URL = os.getenv("ENV_BASE_URL", "http://localhost:8000")
 API_BASE_URL = os.getenv("API_BASE_URL", "https://router.huggingface.co/v1")
-
-# Default to a HF-instruct model; you can change this if you like
 MODEL_NAME = os.getenv("MODEL_NAME", "Qwen/Qwen2.5-7B-Instruct")
 
 HF_TOKEN = os.getenv("HF_TOKEN") or os.getenv("API_KEY")
-
 if HF_TOKEN is None or HF_TOKEN.strip() == "":
     raise RuntimeError(
         "HF_TOKEN (or API_KEY) environment variable is not set. "
         "Per submission rules, this must be provided with no default."
     )
 
-client = OpenAI(base_url=API_BASE_URL, api_key=HF_TOKEN)
+client_llm = OpenAI(base_url=API_BASE_URL, api_key=HF_TOKEN)
 
 
-def get_action_from_llm(state_dict: dict) -> str:
+def get_action_from_llm(obs: CognitiveObservation) -> str:
+    state_dict = obs.model_dump()
     system_prompt = (
         "You are a cognitive companion AI helping a human user who is working on a task.\n"
         "You must choose one of exactly three actions: 'continue', 'intervene', or 'switch_task'.\n"
         "Rules:\n"
-        "- 'continue' if stuck_level is low/moderate.\n"
+        "- 'continue' if stuck_level is low or moderate and there is still time.\n"
         "- 'intervene' if stuck_level is very high (> 0.6).\n"
         "- 'switch_task' if time_left is low, progress is low, and stuck_level is extremely high.\n\n"
         "Reply with EXACTLY ONE word mapping to your chosen action: continue, intervene, or switch_task."
     )
-
-    user_prompt = f"Current State: {json.dumps(state_dict)}"
+    user_prompt = f"Current State: {json.dumps(state_dict, ensure_ascii=False)}"
 
     try:
-        response = client.chat.completions.create(
+        resp = client_llm.chat.completions.create(
             model=MODEL_NAME,
             messages=[
                 {"role": "system", "content": system_prompt},
@@ -52,7 +47,8 @@ def get_action_from_llm(state_dict: dict) -> str:
             ],
             temperature=0.0,
         )
-        act_str = (response.choices[0].message.content or "").strip().lower()
+        content = resp.choices[0].message.content or ""
+        act_str = content.strip().lower()
         if act_str not in ["continue", "intervene", "switch_task"]:
             act_str = "continue"
         return act_str
@@ -61,104 +57,50 @@ def get_action_from_llm(state_dict: dict) -> str:
         return "intervene" if stuck > 0.7 else "continue"
 
 
-def safe_reset(env_base_url: str, difficulty: str):
-    try:
-        return reset(env_base_url, difficulty=difficulty)
-    except Exception as e:
-        print(f"[ERROR] reset failed for difficulty='{difficulty}': {e}")
-        return None
-
-
-def safe_step(env_base_url: str, action: Action):
-    try:
-        return step(env_base_url, action)
-    except Exception as e:
-        print(f"[ERROR] step failed for action='{action.action}': {e}")
-        return None
-
-
 def run() -> None:
     difficulties = ["easy", "medium", "hard"]
     episodes_per_diff = 3
 
+    env_client = CognitiveCompanionClient.from_base_url(ENV_BASE_URL)
+
     for diff in difficulties:
         for episode in range(1, episodes_per_diff + 1):
-            state = safe_reset(ENV_BASE_URL, difficulty=diff)
+            with env_client.sync() as env:
+                obs = env.reset(difficulty=diff)
 
-            if state is None:
                 start_payload = {
                     "episode": episode,
                     "task": diff,
-                    "note": "env_reset_failed",
                 }
                 print(f"[START] {json.dumps(start_payload)}")
 
-                score = clamp_score(0.0)
-                end_payload = {
-                    "episode": episode,
-                    "task": diff,
-                    "total_reward": 0.0,
-                    "score": score,
-                    "note": "env_unreachable",
-                }
-                print(f"[END] {json.dumps(end_payload)}")
-                continue
+                done = False
+                total_reward = 0.0
+                step_idx = 1
 
-            start_payload = {
-                "episode": episode,
-                "task": diff,
-            }
-            print(f"[START] {json.dumps(start_payload)}")
+                while not done:
+                    action_str = get_action_from_llm(obs)
+                    act = Action(action=action_str)
 
-            done = False
-            total_reward = 0.0
-            step_idx = 1
+                    obs = env.step(act)
 
-            while not done:
-                state_dict = (
-                    state.model_dump()
-                    if hasattr(state, "model_dump")
-                    else state.dict()
-                )
-
-                chosen_act_str = get_action_from_llm(state_dict)
-                act = Action(action=chosen_act_str)
-
-                result = safe_step(ENV_BASE_URL, act)
-                if result is None:
-                    score = clamp_score(0.0)
-                    end_payload = {
-                        "episode": episode,
+                    step_payload = {
+                        "step": step_idx,
+                        "state": obs.model_dump(),
+                        "action": action_str,
+                        "reward": obs.reward,
+                        "done": obs.done,
                         "task": diff,
-                        "total_reward": total_reward,
-                        "score": score,
-                        "note": "env_step_failed",
                     }
-                    print(f"[END] {json.dumps(end_payload)}")
-                    break
+                    print(f"[STEP] {json.dumps(step_payload)}")
 
-                step_payload = {
-                    "step": step_idx,
-                    "state": state_dict,
-                    "action": chosen_act_str,
-                    "reward": result.reward,
-                    "done": result.done,
-                    "task": diff,
-                    "q_values": result.q_values,
-                    "history_length": result.history_length,
-                    "epsilon": result.epsilon,
-                }
-                print(f"[STEP] {json.dumps(step_payload)}")
+                    total_reward += obs.reward or 0.0
+                    done = bool(obs.done)
+                    step_idx += 1
 
-                state = result.state
-                total_reward += result.reward
-                done = result.done
-                step_idx += 1
+                final_progress = float(max(0.0, min(1.0, obs.progress)))
+                score = clamp_score(final_progress)
 
-            if done:
-                final_progress = getattr(state, "progress", 0.0)
-                raw_score = float(max(0.0, min(1.0, final_progress)))
-                score = clamp_score(raw_score)
                 end_payload = {
                     "episode": episode,
                     "task": diff,
