@@ -10,7 +10,7 @@ from openai import OpenAI
 
 from models import Action, CognitiveObservation
 from client import CognitiveCompanionClient
-from graders import clamp_score
+from graders import clamp_score, MIN_VALID_SCORE, MAX_VALID_SCORE
 
 
 ENV_BASE_URL = os.environ.get("ENV_BASE_URL", "http://localhost:7860")
@@ -47,7 +47,7 @@ def get_action_from_llm(obs: CognitiveObservation) -> str:
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
             ],
-            temperature=0.0,
+            temperature=0,
         )
         content = resp.choices[0].message.content or ""
         act_str = content.strip().lower()
@@ -55,7 +55,7 @@ def get_action_from_llm(obs: CognitiveObservation) -> str:
             act_str = "continue"
         return act_str
     except Exception:
-        stuck = state_dict.get("stuck_level", 0.0)
+        stuck = state_dict.get("stuck_level", 0.01)
         return "intervene" if stuck > 0.7 else "continue"
 
 
@@ -83,7 +83,7 @@ def run() -> None:
                             started = True
 
                         done = False
-                        total_reward = 0.0
+                        total_reward = 0.01
                         step_idx = 1
 
                         while not done:
@@ -102,11 +102,11 @@ def run() -> None:
                             }
                             print(f"[STEP] {json.dumps(step_payload)}")
 
-                            total_reward += obs.reward or 0.0
+                            total_reward += obs.reward or 0.01
                             done = bool(obs.done)
                             step_idx += 1
 
-                        final_progress = float(max(0.0, min(1.0, obs.progress)))
+                        final_progress = float(max(MIN_VALID_SCORE, min(MAX_VALID_SCORE, obs.progress)))
                         score = clamp_score(final_progress)
 
                         end_payload = {
@@ -125,7 +125,7 @@ def run() -> None:
                         print(f"Episode {episode} failed: {e}", file=sys.stderr)
                         if not started:
                             print(f"[START] {json.dumps({'episode': episode, 'task': diff})}")
-                        print(f"[END] {json.dumps({'episode': episode, 'task': diff, 'total_reward': 0.1, 'score': clamp_score(0.0)})}")
+                        print(f"[END] {json.dumps({'episode': episode, 'task': diff, 'total_reward': 0.1, 'score': clamp_score(MIN_VALID_SCORE)})}")
 
 
 if __name__ == "__main__":

@@ -1,14 +1,15 @@
 # server/environment.py
 
 import random
+import math
 from typing import Union, Any, Dict, List, Optional
 
 from openenv.core.env_server import Environment
 
 from models import Action, CognitiveObservation, EnvState, StepResult
 
-MIN_VALID_SCORE = 0.05
-MAX_VALID_SCORE = 0.95
+MIN_VALID_SCORE = 1e-6
+MAX_VALID_SCORE = 1.0 - 1e-6
 
 
 def clamp_reward(raw: float) -> float:
@@ -16,18 +17,24 @@ def clamp_reward(raw: float) -> float:
     Clamp any raw reward into the same (MIN_VALID_SCORE, MAX_VALID_SCORE)
     band as scores, for safety.
     """
-    val = float(raw)
+    try:
+        val = float(raw)
+    except (TypeError, ValueError):
+        val = MIN_VALID_SCORE
+
+    if not math.isfinite(val):
+        val = MIN_VALID_SCORE
 
     # First bound into [0, 1]
     if val < 0.0:
-        val = 0.0
+        val = MIN_VALID_SCORE
     elif val > 1.0:
-        val = 1.0
+        val = MAX_VALID_SCORE
 
     # Then enforce strict interior using the given min/max
-    if val <= 0.0:
+    if val <= MIN_VALID_SCORE:
         return MIN_VALID_SCORE
-    if val >= 1.0:
+    if val >= MAX_VALID_SCORE:
         return MAX_VALID_SCORE
 
     if val < MIN_VALID_SCORE:
@@ -132,7 +139,7 @@ class CognitiveCompanionEnvironment(Environment[Action, CognitiveObservation, En
 
         self._obs = CognitiveObservation(
             task_type=random.choice(["coding", "content"]),
-            progress=0.0,
+            progress=MIN_VALID_SCORE,
             stuck_level=stuck_level,
             time_left=time_left,
             intervention_available=True,
@@ -158,7 +165,7 @@ class CognitiveCompanionEnvironment(Environment[Action, CognitiveObservation, En
 
         s = self._obs
         act_str = action.action
-        reward = 0.0
+        reward = MIN_VALID_SCORE
 
         old_state_enc = self._encode_state(s)
 
@@ -167,7 +174,7 @@ class CognitiveCompanionEnvironment(Environment[Action, CognitiveObservation, En
 
         # Already terminal
         if s.progress >= 1.0 or s.time_left <= 0:
-            reward = clamp_reward(0.0)
+            reward = clamp_reward(MIN_VALID_SCORE)
             self._done = True
             s.reward = reward
             s.done = True
@@ -214,20 +221,21 @@ class CognitiveCompanionEnvironment(Environment[Action, CognitiveObservation, En
             else:
                 reward = -0.2
 
-            s.stuck_level = random.uniform(0.0, 0.2)
+            s.stuck_level = random.uniform(MIN_VALID_SCORE, 0.2)
 
         else:
             raise ValueError(f"Unknown action: {act_str}")
 
         # Clamp state attributes
-        s.progress = float(max(0.0, min(1.0, s.progress)))
-        s.stuck_level = float(max(0.0, min(1.0, s.stuck_level)))
+        reached_goal = s.progress >= 1.0
+        s.progress = float(max(MIN_VALID_SCORE, min(MAX_VALID_SCORE, s.progress)))
+        s.stuck_level = float(max(MIN_VALID_SCORE, min(MAX_VALID_SCORE, s.stuck_level)))
 
         self._step_idx += 1
-        done = s.progress >= 1.0 or s.time_left <= 0
+        done = reached_goal or s.time_left <= 0
 
-        if s.progress >= 1.0:
-            reward = max(reward, 1.0)
+        if reached_goal:
+            reward = max(reward, MAX_VALID_SCORE)
 
         # FINAL: clamp reward into (MIN_VALID_SCORE, MAX_VALID_SCORE)
         reward = clamp_reward(reward)
@@ -288,7 +296,7 @@ class CognitiveCompanionEnvironment(Environment[Action, CognitiveObservation, En
 
         return StepResult(
             state=obs,
-            reward=obs.reward or 0.0,
+            reward=obs.reward or MIN_VALID_SCORE,
             done=obs.done or False,
             state_key=encoded,
             q_values=q_vals,
