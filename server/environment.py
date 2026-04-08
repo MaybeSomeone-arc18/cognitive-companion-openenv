@@ -165,7 +165,7 @@ class CognitiveCompanionEnvironment(Environment[Action, CognitiveObservation, En
                 reward = -0.4 if s.stuck_level > 0.8 else -0.2
             elif 0.4 <= s.stuck_level <= 0.7:
                 s.stuck_level += random.uniform(-0.02, 0.08)
-                reward = 0.05
+                reward = MIN_VALID_SCORE
             else:
                 s.stuck_level -= random.uniform(0.02, 0.08)
                 reward = 0.2 if actual_inc > 0.03 else 0.1
@@ -176,7 +176,7 @@ class CognitiveCompanionEnvironment(Environment[Action, CognitiveObservation, En
                 s.stuck_level -= random.uniform(0.3, 0.6)
                 reward = random.uniform(0.5, 0.6)
             else:
-                s.progress += random.uniform(MIN_VALID_SCORE, 0.02)
+                s.progress += random.uniform(0.02, MIN_VALID_SCORE)
                 s.stuck_level += random.uniform(0.05, 0.15)
                 reward = -0.3
 

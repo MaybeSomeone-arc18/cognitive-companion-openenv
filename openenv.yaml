@@ -19,10 +19,10 @@ observation_space:
       description: "Current work mode: e.g. 'coding' or 'content'."
     progress:
       type: number
-      description: "Overall task progress in (0, 1), excluding 0 and 1."
+      description: "Overall task progress in [0.1, 0.9]."
     stuck_level:
       type: number
-      description: "How stuck the user feels, in (0, 1), excluding 0 and 1."
+      description: "How stuck the user feels, in [0.1, 0.9]."
     time_left:
       type: integer
       description: "Remaining time budget for the task, in minutes (or steps)."

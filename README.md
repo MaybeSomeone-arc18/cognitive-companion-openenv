@@ -35,7 +35,7 @@ This project implements a complete OpenEnv environment as required in the Round 
   - Typed models for `State`, `Action`, and `StepResult`.
   - REST endpoints: `/reset`, `/step`, `/state`.
   - `openenv.yaml` describing tasks and graders.
-- **3 tasks**: `easy`, `medium`, `hard`, each with a grader and score in `[0.0, 1.0]`.
+- **3 tasks**: `easy`, `medium`, `hard`, each with a grader and score in `[0.1, 0.9]`.
 - **Meaningful reward function**: dense feedback for progress, flow, and frustration.
 - **Baseline `inference.py`**:
   - Uses OpenAI Client.
@@ -64,8 +64,8 @@ The environment exposes a continuous observation space with a finite horizon. Ex
 ```
 
 - `task_type` (str): `"coding"` or `"content"`.
-- `progress` (float, 0.0–1.0): normalized task completion.
-- `stuck_level` (float, 0.0–1.0): user frustration / blockage.
+- `progress` (float, 0.1–0.9): normalized task completion.
+- `stuck_level` (float, 0.1–0.9): user frustration / blockage.
 - `time_left` (int): steps before the episode ends.
 - `intervention_available` (bool): whether the agent can currently intervene.
 
@@ -99,12 +99,12 @@ Rewards are shaped to encourage:
 
 Approximate reward design:
 
-- Good continuation (low `stuck_level`): `+0.05` to `+0.2`.
+- Good continuation (low `stuck_level`): `+0.1` to `+0.2`.
 - Grinding while stuck (`stuck_level > 0.7`): `-0.2` to `-0.4`.
 - Good intervention (well‑timed help): `+0.5` to `+0.6`.
 - Bad intervention (too early): `-0.3`.
 - Switch task: baseline `-0.2`, up to `+0.3` if it rescues a failing episode.
-- Completion bonus: `+1.0` when `progress` reaches `1.0`.
+- Completion bonus: up to `+0.9` when `progress` reaches `0.9`.
 
 ---
 
@@ -135,13 +135,13 @@ The environment defines three difficulty levels in `openenv.yaml`, all using a s
 
 - Input: the **entire episode trajectory** (list of step dictionaries).
 - It inspects the final step’s `state.progress`.
-- Output: final progress clamped into `[0.0, 1.0]`:
+- Output: final progress clamped into `[0.1, 0.9]`:
 
 ```python
 final_step = trajectory[-1]
 final_state = final_step.get("state", {})
-progress = final_state.get("progress", 0.0)
-score = float(max(0.0, min(1.0, progress)))
+progress = final_state.get("progress", 0.1)
+score = float(max(0.1, min(0.9, progress)))
 ```
 
 This satisfies the requirement that task scores are real‑valued and normalized.
@@ -238,7 +238,7 @@ For compliance with the Round 1 validator, `inference.py` emits structured stdou
   - `episode`
   - `task`
   - `total_reward`
-  - `score` (final progress clamped to `[0.0, 1.0]`)
+  - `score` (final progress clamped to `[0.1, 0.9]`)
 
 The script runs multiple episodes per difficulty (`easy`, `medium`, `hard`) and adheres to the runtime and resource constraints specified in the problem statement.
 
