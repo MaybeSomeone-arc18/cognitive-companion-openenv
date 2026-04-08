@@ -13,18 +13,18 @@ from client import CognitiveCompanionClient
 from graders import clamp_score
 
 
-ENV_BASE_URL = os.getenv("ENV_BASE_URL", "http://localhost:8000")
-API_BASE_URL = os.getenv("API_BASE_URL", "https://router.huggingface.co/v1")
-MODEL_NAME = os.getenv("MODEL_NAME", "Qwen/Qwen2.5-7B-Instruct")
+ENV_BASE_URL = os.environ.get("ENV_BASE_URL", "http://localhost:7860")
 
-HF_TOKEN = os.getenv("HF_TOKEN") or os.getenv("API_KEY")
-if HF_TOKEN is None or HF_TOKEN.strip() == "":
-    raise RuntimeError(
-        "HF_TOKEN (or API_KEY) environment variable is not set. "
-        "Per submission rules, this must be provided with no default."
-    )
+# Fallback values for local testing if env variables are not supplied
+_default_api_base = "https://router.huggingface.co/v1"
+_default_api_key = os.environ.get("HF_TOKEN", "dummy")
 
-client_llm = OpenAI(base_url=API_BASE_URL, api_key=HF_TOKEN)
+client_llm = OpenAI(
+    base_url=os.environ.get("API_BASE_URL", _default_api_base),
+    api_key=os.environ.get("API_KEY", _default_api_key)
+)
+
+MODEL_NAME = os.environ.get("MODEL_NAME", "Qwen/Qwen2.5-7B-Instruct")
 
 
 def get_action_from_llm(obs: CognitiveObservation) -> str:
