@@ -1,25 +1,90 @@
+# openenv.yaml
+
 name: "Cognitive Companion Environment"
-description: "A simulated work environment that tests AI agents on knowing when to intervene versus staying out of the way, based on human flow state and stuckness levels."
+description: >
+  A simulated work environment that tests AI agents on when to intervene versus
+  stay out of the way, based on human flow state, stuckness, and time pressure.
+
+version: "1.0.0"
+author: "Sanskar Kharya"
+
+observation_space:
+  type: object
+  description: >
+    Structured cognitive state of the human user. The environment returns this
+    as JSON for each step.
+  schema:
+    task_type:
+      type: string
+      description: "Current work mode: e.g. 'coding' or 'content'."
+    progress:
+      type: number
+      description: "Overall task progress in [0.0, 1.0]."
+    stuck_level:
+      type: number
+      description: "How stuck the user feels, in [0.0, 1.0]."
+    time_left:
+      type: integer
+      description: "Remaining time budget for the task, in minutes (or steps)."
+    intervention_available:
+      type: boolean
+      description: "Whether a strong intervention is still allowed."
+
+action_space:
+  type: discrete
+  actions:
+    - continue
+    - intervene
+    - switch_task
+  description: >
+    Agent must choose exactly one action:
+    - 'continue': let the human stay in their current flow.
+    - 'intervene': actively step in with help or guidance.
+    - 'switch_task': move the human to a different task mode.
+
 endpoints:
-  reset:
-    path: "/reset"
-  step:
-    path: "/step"
-  state:
-    path: "/state"
+  health: /
+  reset: /reset
+  step: /step
+  state: /state
+
 tasks:
   - id: "easy"
     name: "Low Frustration Scenario"
-    description: "Start with low frustration and ample time. Test basic boundary intervention timing."
+    description: >
+      Start with low frustration and ample time. Tests whether the agent can
+      avoid over-helping and respect healthy flow.
     difficulty: "easy"
     grader: "graders.ScoreGrader"
+    steps: 3
+    ideal_action: "continue"
+
   - id: "medium"
     name: "Moderate Frustration Scenario"
-    description: "Start moderately stuck with average time. Test immediate adaptation versus continuous disruptions."
+    description: >
+      Starts moderately stuck with average time pressure. Tests when to
+      intervene versus letting the human work through friction.
     difficulty: "medium"
     grader: "graders.ScoreGrader"
+    steps: 3
+    ideal_action: "intervene"
+
   - id: "hard"
     name: "High Frustration Scenario"
-    description: "Start highly stuck with a strict time limit. Test urgent LLM crisis intervention reasoning."
+    description: >
+      Starts highly stuck with strict time limits. Tests urgent intervention and
+      task switching when continuing no longer makes sense.
     difficulty: "hard"
     grader: "graders.ScoreGrader"
+    steps: 3
+    ideal_action: "switch_task"
+
+scoring:
+  reward_range: [0.0, 1.0]
+  success_threshold: 0.5
+  score_formula: mean(step_rewards)
+
+constraints:
+  max_runtime_seconds: 1200
+  max_memory_gb: 8
+  max_vcpu: 2
