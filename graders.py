@@ -2,8 +2,8 @@
 
 from typing import List, Dict, Any
 
-MIN_VALID_SCORE = 0.02
-MAX_VALID_SCORE = 0.98
+MIN_VALID_SCORE = 0.01
+MAX_VALID_SCORE = 0.99
 
 
 def clamp_score(raw_score: float) -> float:
