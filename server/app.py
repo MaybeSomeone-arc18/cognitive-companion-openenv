@@ -8,7 +8,7 @@ from openenv.core.env_server.http_server import create_app
 
 from models import Action, CognitiveObservation, EnvState, StepResult
 from server.environment import CognitiveCompanionEnvironment
-from graders import default_grader
+from graders import default_grader, safe_task_score
 
 # OpenEnv FastAPI app
 openenv_app = create_app(
@@ -68,8 +68,8 @@ def grade_episode(payload: dict):
     if task_id not in graders:
         raise HTTPException(status_code=400, detail=f"unknown task_id: {task_id}")
 
-    score = graders[task_id](episode_log)
-    score = max(0.01, min(float(score), 0.99))
+    raw = graders[task_id](episode_log)
+    score = safe_task_score(float(raw))
     assert 0.0 < score < 1.0
     return {"task_id": task_id, "score": score}
 

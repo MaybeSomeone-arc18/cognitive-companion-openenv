@@ -5,7 +5,7 @@ from openai import OpenAI
 
 from models import Action, CognitiveObservation
 from client import CognitiveCompanionClient
-from graders import clamp_score, MIN_VALID_SCORE
+from graders import clamp_score, safe_task_score, MIN_VALID_SCORE
 
 
 ENV_BASE_URL = os.environ.get("ENV_BASE_URL", "http://localhost:7860")
@@ -92,8 +92,9 @@ def run() -> None:
         step_idx = 0
         success = False
         last_error: Optional[str] = None
-        final_score = 0.01
+        final_score = safe_task_score(-0.5)
         last_obs: Optional[CognitiveObservation] = None
+        reward_values: List[float] = []
 
         try:
             with env_client.sync() as env:
@@ -106,6 +107,7 @@ def run() -> None:
                     step_idx += 1
 
                     reward_val = clamp_score(obs.reward if obs.reward is not None else 0.01)
+                    reward_values.append(reward_val)
                     rewards.append(_fmt_reward(reward_val))
                     done = bool(obs.done)
 
@@ -124,8 +126,13 @@ def run() -> None:
         except Exception as exc:
             last_error = str(exc)
 
-        raw_score = last_obs.progress if last_obs is not None else 0.01
-        final_score = max(0.01, min(float(raw_score), 0.99))
+        if reward_values:
+            raw_score = sum(reward_values) / len(reward_values)
+        elif last_obs is not None:
+            raw_score = last_obs.progress
+        else:
+            raw_score = -0.5
+        final_score = safe_task_score(raw_score)
         assert 0.0 < final_score < 1.0
         success = bool(final_score >= 0.5 and last_error is None)
 

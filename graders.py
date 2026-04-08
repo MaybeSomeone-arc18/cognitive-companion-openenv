@@ -6,6 +6,23 @@ MIN_VALID_SCORE = 0.01
 MAX_VALID_SCORE = 0.99
 
 
+def safe_task_score(raw: float) -> float:
+    """
+    Map a raw performance signal to a dynamic, safe task score:
+    raw (-1..1-ish) -> normalized [0,1] -> shrunk [0.1,0.9] -> clamped (0.01,0.99).
+    """
+    try:
+        raw_val = float(raw)
+    except (TypeError, ValueError):
+        raw_val = -1.0
+    normalized = (raw_val + 1.0) / 2.0
+    normalized = max(0.0, min(normalized, 1.0))
+    score = 0.1 + (0.8 * normalized)
+    score = max(MIN_VALID_SCORE, min(score, MAX_VALID_SCORE))
+    assert 0.0 < score < 1.0
+    return score
+
+
 def clamp_score(raw_score: float) -> float:
     try:
         score = float(raw_score)
@@ -43,9 +60,9 @@ class ScoreGrader:
             progress = 0.0
 
         raw_score = float(progress or 0.0)
-        return clamp_score(raw_score)
+        return safe_task_score(raw_score)
 
 
 def default_grader(trajectory, **kwargs) -> float:
     raw_score = ScoreGrader().grade(trajectory, **kwargs)
-    return clamp_score(raw_score)
+    return safe_task_score(raw_score)
