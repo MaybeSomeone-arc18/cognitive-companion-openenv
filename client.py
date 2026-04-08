@@ -1,17 +1,35 @@
-import requests
-from models import State, Action, StepResult
+# client.py
 
-def reset(base_url: str, difficulty: str = "medium") -> State:
-    url = f"{base_url}/reset"
-    # Adhere closely with the mapped server/app.py schema taking formal payload JSON arguments.
-    response = requests.post(url, json={"difficulty": difficulty})
-    response.raise_for_status()
-    return State(**response.json())
+from typing import Optional
 
-def step(base_url: str, action: Action) -> StepResult:
-    url = f"{base_url}/step"
-    # Support both Pydantic v1 and v2 for dumping to dictionary
-    payload = action.model_dump() if hasattr(action, "model_dump") else action.dict()
-    response = requests.post(url, json=payload)
-    response.raise_for_status()
-    return StepResult(**response.json())
+from openenv.core.env_client import EnvClient
+
+from models import Action, CognitiveObservation, EnvState
+
+
+class CognitiveCompanionClient(EnvClient[Action, CognitiveObservation, EnvState]):
+    """
+    OpenEnv-compatible client for the Cognitive Companion environment.
+    """
+
+    @classmethod
+    def from_base_url(cls, base_url: str) -> "CognitiveCompanionClient":
+        return cls(base_url=base_url)
+
+
+# For compatibility with your existing code, keep simple helpers.
+
+def reset(base_url: str, difficulty: str = "medium") -> CognitiveObservation:
+    """
+    Synchronous helper to reset the environment using HTTP/WS via EnvClient.
+    """
+    with CognitiveCompanionClient.from_base_url(base_url).sync() as client:
+        return client.reset(difficulty=difficulty)
+
+
+def step(base_url: str, action: Action) -> CognitiveObservation:
+    """
+    Synchronous helper to step the environment.
+    """
+    with CognitiveCompanionClient.from_base_url(base_url).sync() as client:
+        return client.step(action)
