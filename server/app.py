@@ -8,7 +8,7 @@ from openenv.core.env_server.http_server import create_app
 
 from models import Action, CognitiveObservation, EnvState, StepResult
 from server.environment import CognitiveCompanionEnvironment
-from graders import default_grader, safe_task_score, MIN_VALID_SCORE, MAX_VALID_SCORE
+from graders import default_grader, clamp_score, MIN_VALID_SCORE, MAX_VALID_SCORE
 
 # OpenEnv FastAPI app
 openenv_app = create_app(
@@ -82,8 +82,7 @@ def grade_episode(payload: dict):
     if task_id not in graders:
         raise HTTPException(status_code=400, detail=f"unknown task_id: {task_id}")
 
-    raw = graders[task_id](episode_log)
-    score = safe_task_score(float(raw))
+    score = graders[task_id](episode_log)
     assert MIN_VALID_SCORE <= score <= MAX_VALID_SCORE
     return {"task_id": task_id, "score": score}
 
@@ -93,7 +92,7 @@ def main():
     import os
 
     port = int(os.environ.get("PORT", 8000))
-    host = os.environ.get("HOST", "0" + ".0.0.0")
+    host = os.environ.get("HOST", "0.0.0.0")
     uvicorn.run("server.app:app", host=host, port=port)
 
 

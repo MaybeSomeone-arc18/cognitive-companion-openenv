@@ -1,30 +1,37 @@
 import random
 from models import Action
-from server.environment import CognitiveCompanionEnv
+from server.environment import CognitiveCompanionEnvironment
+
 
 def test_heuristic(name: str, use_heuristic: bool, steps: int = 15):
     print(f"=== {name} ===")
-    
-    env = CognitiveCompanionEnv()
-    random.seed(42) # Use fixed seed to compare the exact same starting conditions
-    env.reset(difficulty="hard") # Start stuck so the heuristic actually triggers
-    
-    total_reward = 0.0
+
+    env = CognitiveCompanionEnvironment()
+    random.seed(42)
+    env.reset(difficulty="hard")
+
+    total_reward = 0.05
     for i in range(steps):
-        s = env.state()
-        if use_heuristic and s.stuck_level > 0.7:
+        s = env.state
+        obs = env._obs
+        if use_heuristic and obs and obs.stuck_level > 0.7:
             act = "intervene"
         else:
             act = "continue"
-            
-        res = env.step(act)
-        total_reward += res.reward
-        
-        print(f"Step {i+1:2d} | Action: {act:11s} | Prog: {res.state.progress:.2f} | Stuck: {res.state.stuck_level:.2f} | Reward: {res.reward:5.2f} | Done: {res.done}")
-        
-        if res.done:
+
+        obs = env.step(Action(action=act))
+        reward = obs.reward if obs.reward is not None else 0.05
+        total_reward += reward
+
+        print(
+            f"Step {i+1:2d} | Action: {act:11s} | "
+            f"Prog: {obs.progress:.2f} | Stuck: {obs.stuck_level:.2f} | "
+            f"Reward: {reward:5.2f} | Done: {obs.done}"
+        )
+
+        if obs.done:
             break
-            
+
     print(f"Total Cumulative Reward -> {total_reward:.2f}\n")
 
 

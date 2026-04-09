@@ -4,7 +4,6 @@ emoji: "🧠"
 colorFrom: "blue"
 colorTo: "green"
 sdk: "docker"
-sdk_version: "0.0.1"
 pinned: false
 ---
 # Cognitive Companion: Intervention-Aware Work Environment
@@ -35,7 +34,7 @@ This project implements a complete OpenEnv environment as required in the Round 
   - Typed models for `State`, `Action`, and `StepResult`.
   - REST endpoints: `/reset`, `/step`, `/state`.
   - `openenv.yaml` describing tasks and graders.
-- **3 tasks**: `easy`, `medium`, `hard`, each with a grader and score in `[0.1, 0.9]`.
+- **3 tasks**: `easy`, `medium`, `hard`, each with a grader and score strictly in `(0, 1)`.
 - **Meaningful reward function**: dense feedback for progress, flow, and frustration.
 - **Baseline `inference.py`**:
   - Uses OpenAI Client.
@@ -64,8 +63,8 @@ The environment exposes a continuous observation space with a finite horizon. Ex
 ```
 
 - `task_type` (str): `"coding"` or `"content"`.
-- `progress` (float, 0.1–0.9): normalized task completion.
-- `stuck_level` (float, 0.1–0.9): user frustration / blockage.
+- `progress` (float): normalized task completion, strictly in `(0, 1)`.
+- `stuck_level` (float): user frustration / blockage, strictly in `(0, 1)`.
 - `time_left` (int): steps before the episode ends.
 - `intervention_available` (bool): whether the agent can currently intervene.
 
@@ -104,13 +103,15 @@ Approximate reward design:
 - Good intervention (well‑timed help): `+0.5` to `+0.6`.
 - Bad intervention (too early): `-0.3`.
 - Switch task: baseline `-0.2`, up to `+0.3` if it rescues a failing episode.
-- Completion bonus: up to `+0.9` when `progress` reaches `0.9`.
+- Completion bonus: up to `+0.95` when `progress` reaches `0.99`.
+
+All rewards and scores are clamped into `[0.05, 0.95]` — strictly inside `(0, 1)`.
 
 ---
 
 ## 4. Tasks & Graders
 
-The environment defines three difficulty levels in `openenv.yaml`, all using a shared grader `graders.ScoreGrader`.
+The environment defines three difficulty levels in `openenv.yaml`, all using a shared grader `graders.default_grader`.
 
 ### 4.1 Tasks
 
@@ -134,17 +135,17 @@ The environment defines three difficulty levels in `openenv.yaml`, all using a s
 `ScoreGrader` is an OpenEnv‑compatible grader that maps the full trajectory to a normalized score:
 
 - Input: the **entire episode trajectory** (list of step dictionaries).
-- It inspects the final step’s `state.progress`.
-- Output: final progress clamped into `[0.1, 0.9]`:
+- It inspects the final step's `state.progress`.
+- Output: final progress clamped into `[0.05, 0.95]` (strictly inside `(0, 1)`):
 
 ```python
 final_step = trajectory[-1]
 final_state = final_step.get("state", {})
-progress = final_state.get("progress", 0.1)
-score = float(max(0.1, min(0.9, progress)))
+progress = final_state.get("progress", 0.05)
+score = clamp_score(progress)  # always in [0.05, 0.95]
 ```
 
-This satisfies the requirement that task scores are real‑valued and normalized.
+This satisfies the requirement that task scores are real‑valued, normalized, and strictly between 0 and 1.
 
 ---
 
@@ -178,7 +179,7 @@ The environment is implemented with FastAPI and exposes the standard OpenEnv end
 
 - Environment name and description.
 - Endpoint paths for `reset`, `step`, and `state`.
-- Task definitions (`easy`, `medium`, `hard`) and their grader (`graders.ScoreGrader`).
+- Task definitions (`easy`, `medium`, `hard`) and their grader (`graders.default_grader`).
 
 ---
 
@@ -190,20 +191,20 @@ A baseline agent is provided to demonstrate how to interact with the environment
 
 `inference.py` expects the following environment variables:
 
-- `ENV_BASE_URL` – base URL of the environment (default: `http://localhost:8000`).
+- `ENV_BASE_URL` – base URL of the environment (default: `http://localhost:7860`).
 - `API_BASE_URL` – LLM API endpoint (e.g. `https://api.openai.com/v1`).
 - `MODEL_NAME` – model identifier for the LLM.
-- `HF_TOKEN` – API key (Hugging Face / OpenAI).
+- `HF_TOKEN` – API key (Hugging Face / OpenAI). **Required**.
 
 The script uses the **OpenAI Client** with these parameters.
 
 ### 6.2 Policy Logic
 
-`get_action_from_llm(state_dict)`:
+`get_action_from_llm(obs)`:
 
-- Serializes the current state as JSON.
+- Serializes the current state as a dict.
 - Sends a system prompt that:
-  - Describes the companion’s role.
+  - Describes the companion's role.
   - Defines the three actions.
   - Specifies decision rules in terms of `stuck_level`, `progress`, and `time_left`.
   - Instructs the model to reply with exactly one token:
@@ -216,31 +217,15 @@ The script uses the **OpenAI Client** with these parameters.
 
 For compliance with the Round 1 validator, `inference.py` emits structured stdout logs:
 
-- `[START] { ... }` at episode start  
-  Contains:
-  - `episode`
-  - `task` (difficulty)
+```
+[START] task=<task_name> env=cognitive_companion model=<model_name>
+[STEP]  step=<n> action=<action_str> reward=<0.00> done=<true|false> error=<msg|null>
+[END]   success=<true|false> steps=<n> rewards=<r1,r2,...,rn> score=<0.0000>
+```
 
-- `[STEP] { ... }` for each environment step  
-  Contains:
-  - `step`
-  - `state`
-  - `action`
-  - `reward`
-  - `done`
-  - `task`
-  - `q_values`
-  - `history_length`
-  - `epsilon`
-
-- `[END] { ... }` at episode end  
-  Contains:
-  - `episode`
-  - `task`
-  - `total_reward`
-  - `score` (final progress clamped to `[0.1, 0.9]`)
-
-The script runs multiple episodes per difficulty (`easy`, `medium`, `hard`) and adheres to the runtime and resource constraints specified in the problem statement.
+All reward and score values are:
+- Formatted to 2 decimal places (rewards) or 4 decimal places (score).
+- Strictly within `(0, 1)` — never exactly 0 and never exactly 1.
 
 ---
 
@@ -256,33 +241,33 @@ source venv/bin/activate
 2. Install dependencies:
 
 ```bash
-pip install fastapi uvicorn[standard] pydantic requests openai
+pip install -r requirements.txt
 ```
 
 3. Start the environment server:
 
 ```bash
-uvicorn server.app:app --reload
+uvicorn server.app:app --host 0.0.0.0 --port 7860
 ```
 
 4. In a separate terminal, set the required variables and run the baseline agent:
 
 ```bash
-export ENV_BASE_URL="http://localhost:8000"
+export ENV_BASE_URL="http://localhost:7860"
 export API_BASE_URL="https://api.openai.com/v1"
-export MODEL_NAME="gpt-3.5-turbo"
+export MODEL_NAME="gpt-4o-mini"
 export HF_TOKEN="your-key-here"
 
 python inference.py
 ```
 
-You should see `[START]`, `[STEP]`, and `[END]` logs for all three difficulties.
+You should see `[START]`, `[STEP]`, and `[END]` logs for all three task difficulties.
 
 ---
 
 ## 8. Hugging Face Spaces (Docker)
 
-The repository includes a Docker setup (under `server/`) compatible with Hugging Face Spaces:
+The repository includes a Docker setup compatible with Hugging Face Spaces:
 
 - Base image: `python:3.11-slim`.
 - Installs project dependencies.

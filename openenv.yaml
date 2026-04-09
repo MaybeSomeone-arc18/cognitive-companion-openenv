@@ -5,7 +5,7 @@ description: >
   A simulated work environment that tests AI agents on when to intervene versus
   stay out of the way, based on human flow state, stuckness, and time pressure.
 
-version: "1.01.0"
+version: "1.1.0"
 author: "Sanskar Kharya"
 
 observation_space:
@@ -19,10 +19,10 @@ observation_space:
       description: "Current work mode: e.g. 'coding' or 'content'."
     progress:
       type: number
-      description: "Overall task progress in [0.1, 0.9]."
+      description: "Overall task progress in (0, 1)."
     stuck_level:
       type: number
-      description: "How stuck the user feels, in [0.1, 0.9]."
+      description: "How stuck the user feels, in (0, 1)."
     time_left:
       type: integer
       description: "Remaining time budget for the task, in minutes (or steps)."
@@ -80,7 +80,7 @@ tasks:
     ideal_action: "switch_task"
 
 scoring:
-  reward_range: [0.1, 0.9]
+  reward_range: [0.05, 0.95]
   success_threshold: 0.5
 
 constraints:

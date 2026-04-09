@@ -1,3 +1,5 @@
+# inference.py
+
 import os
 from typing import List, Optional
 
@@ -5,8 +7,11 @@ from openai import OpenAI
 
 from models import Action, CognitiveObservation
 from client import CognitiveCompanionClient
-from graders import clamp_score, safe_task_score, MIN_VALID_SCORE, MAX_VALID_SCORE
+from graders import clamp_score, MIN_VALID_SCORE, MAX_VALID_SCORE
 
+# -------------------------------------------------------------------
+# Env + LLM config
+# -------------------------------------------------------------------
 
 ENV_BASE_URL = os.environ.get("ENV_BASE_URL", "http://localhost:7860")
 API_BASE_URL = os.getenv("API_BASE_URL", "https://api.openai.com/v1")
@@ -39,13 +44,16 @@ def _safe_token(value: Optional[str]) -> str:
 
 def _load_tasks_from_openenv() -> List[str]:
     tasks: List[str] = []
-    with open("openenv.yaml", "r", encoding="utf-8") as f:
-        for line in f:
-            stripped = line.strip()
-            if stripped.startswith("- id:"):
-                task = stripped.split(":", 1)[1].strip().strip("\"'")
-                if task:
-                    tasks.append(task)
+    try:
+        with open("openenv.yaml", "r", encoding="utf-8") as f:
+            for line in f:
+                stripped = line.strip()
+                if stripped.startswith("- id:"):
+                    task = stripped.split(":", 1)[1].strip().strip("\"'")
+                    if task:
+                        tasks.append(task)
+    except FileNotFoundError:
+        pass
     return tasks or ["easy", "medium", "hard"]
 
 
@@ -77,7 +85,7 @@ def get_action_from_llm(obs: CognitiveObservation) -> str:
             act_str = "continue"
         return act_str
     except Exception:
-        stuck = state_dict.get("stuck_level", MIN_VALID_SCORE)
+        stuck = state_dict.get("stuck_level", 0.5)
         return "intervene" if stuck > 0.7 else "continue"
 
 
@@ -92,7 +100,7 @@ def run() -> None:
         step_idx = 0
         success = False
         last_error: Optional[str] = None
-        final_score = safe_task_score(-0.5)
+        final_score = MIN_VALID_SCORE
         last_obs: Optional[CognitiveObservation] = None
         reward_values: List[float] = []
 
@@ -106,7 +114,9 @@ def run() -> None:
                     last_obs = obs
                     step_idx += 1
 
-                    reward_val = clamp_score(obs.reward if obs.reward is not None else MIN_VALID_SCORE)
+                    reward_val = clamp_score(
+                        obs.reward if obs.reward is not None else MIN_VALID_SCORE
+                    )
                     reward_values.append(reward_val)
                     rewards.append(_fmt_reward(reward_val))
                     done = bool(obs.done)
@@ -126,21 +136,26 @@ def run() -> None:
         except Exception as exc:
             last_error = str(exc)
 
-        if reward_values:
-            raw_score = sum(reward_values) / len(reward_values)
-        elif last_obs is not None:
-            raw_score = last_obs.progress
+        # Compute final task score — use progress from last observation
+        if last_obs is not None:
+            raw_progress = last_obs.progress if last_obs.progress is not None else MIN_VALID_SCORE
+            final_score = clamp_score(raw_progress)
         else:
-            raw_score = -0.5
-        final_score = safe_task_score(raw_score)
-        assert MIN_VALID_SCORE <= final_score <= MAX_VALID_SCORE
+            final_score = MIN_VALID_SCORE
+
+        # Safety assertion — should never fail
+        assert MIN_VALID_SCORE <= final_score <= MAX_VALID_SCORE, (
+            f"Score {final_score} outside safe range [{MIN_VALID_SCORE}, {MAX_VALID_SCORE}]"
+        )
+
         success = bool(final_score >= 0.5 and last_error is None)
 
         if not rewards:
             rewards = [_fmt_reward(MIN_VALID_SCORE)]
 
         print(
-            f"[END]   success={_bool_str(success)} steps={step_idx} rewards={','.join(rewards)}"
+            f"[END]   success={_bool_str(success)} steps={step_idx} "
+            f"rewards={','.join(rewards)} score={final_score:.4f}"
         )
 
 
