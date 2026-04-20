@@ -54,13 +54,7 @@ _env = CognitiveCompanionEnvironment()
 
 @app.get("/")
 def root():
-    return JSONResponse(
-        {
-            "name": "Cognitive Companion Environment",
-            "status": "ok",
-            "endpoints": ["/health", "/reset", "/step", "/state", "/schema", "/ws", "/qtable"],
-        }
-    )
+    return {"message": "API running. Visit /dashboard/index.html"}
 
 
 from baseline_agent import BaselineAgent
@@ -149,10 +143,12 @@ def grade_episode(payload: dict):
 
 
 # Serve static dashboard — accessible at /dashboard on the deployed Space
-import os as _os
-_dashboard_dir = _os.path.join(_os.path.dirname(__file__), "..", "dashboard")
-if _os.path.isdir(_dashboard_dir):
-    app.mount("/dashboard", StaticFiles(directory=_dashboard_dir, html=True), name="dashboard")
+import os
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+dashboard_path = os.path.join(BASE_DIR, "dashboard")
+
+if os.path.isdir(dashboard_path):
+    app.mount("/dashboard", StaticFiles(directory=dashboard_path, html=True), name="dashboard")
 
 # Mount the core OpenEnv sub-app at the root, AFTER all custom overrides so they don't get shadowed
 app.mount("", openenv_app)
