@@ -3,6 +3,7 @@
 from fastapi import FastAPI
 from fastapi import HTTPException
 from fastapi.responses import JSONResponse, HTMLResponse
+from fastapi.staticfiles import StaticFiles
 
 from openenv.core.env_server.http_server import create_app
 
@@ -36,8 +37,16 @@ def openenv_root():
 # Wrap in a top-level FastAPI so we can add extra endpoints if needed
 app = FastAPI(title="Cognitive Companion Environment")
 
-# Mount the OpenEnv routes under root
-app.mount("", openenv_app)
+from fastapi.middleware.cors import CORSMiddleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
 
 # Access to the underlying singleton environment for extras
 _env = CognitiveCompanionEnvironment()
@@ -54,9 +63,61 @@ def root():
     )
 
 
+from baseline_agent import BaselineAgent
+
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+@app.post("/baseline/run-once")
+def run_baseline_once():
+    # Instantiate standalone local environment & agent for isolated synchronous run
+    local_env = CognitiveCompanionEnvironment()
+    agent = BaselineAgent()
+    
+    obs = local_env.reset(difficulty="medium")
+    
+    total_reward = 0.0
+    num_interventions = 0
+    done = False
+    
+    steps_log = []
+    
+    while not done:
+        action_decision = agent.select_action(obs)
+        action_str = "intervene" if action_decision == "INTERVENE" else "continue"
+        
+        if action_decision == "INTERVENE":
+            num_interventions += 1
+            
+        is_stuck_val = agent.is_stuck
+        is_err_val = agent.is_error_spiral
+        
+        obs = local_env.step(Action(action=action_str))
+        reward = clamp_score(obs.reward if obs.reward is not None else MIN_VALID_SCORE)
+        total_reward += reward
+        done = bool(obs.done)
+        
+        steps_log.append({
+            "step": local_env._step_idx,
+            "action": action_decision,
+            "reward": round(reward, 3),
+            "is_stuck": is_stuck_val,
+            "is_error_spiral": is_err_val
+        })
+        
+    completion = obs.progress if obs.progress is not None else 0.0
+    
+    return {
+        "summary": {
+            "difficulty": "medium",
+            "total_reward": round(total_reward, 3),
+            "interventions": num_interventions,
+            "completion": round(completion, 3)
+        },
+        "steps": steps_log
+    }
+
 
 
 @app.get("/qtable")
@@ -86,6 +147,15 @@ def grade_episode(payload: dict):
     assert MIN_VALID_SCORE <= score <= MAX_VALID_SCORE
     return {"task_id": task_id, "score": score}
 
+
+# Serve static dashboard — accessible at /dashboard on the deployed Space
+import os as _os
+_dashboard_dir = _os.path.join(_os.path.dirname(__file__), "..", "dashboard")
+if _os.path.isdir(_dashboard_dir):
+    app.mount("/dashboard", StaticFiles(directory=_dashboard_dir, html=True), name="dashboard")
+
+# Mount the core OpenEnv sub-app at the root, AFTER all custom overrides so they don't get shadowed
+app.mount("", openenv_app)
 
 def main():
     import uvicorn

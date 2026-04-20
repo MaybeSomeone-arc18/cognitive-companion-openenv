@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cognitive Companion Dashboard</title>
+    <!-- Modern Typography: Inter & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container fade-in-hero">
+        <!-- Hero Section -->
+        <header class="hero">
+            <div class="hero-content">
+                <h1>Cognitive Companion</h1>
+                <p class="tagline">An anxious little AI trying to figure out when to shut up, and when to save you.</p>
+            </div>
+            <div class="hero-action">
+                <button id="runBaselineBtn" class="btn-primary">
+                    <span class="btn-text">Run baseline evaluation</span>
+                    <span class="btn-spinner" style="display: none;"></span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Layout Grid -->
+        <main class="grid-layout">
+            
+            <!-- Left Column: Pulse & Story -->
+            <section class="col-left">
+                <!-- Episode Pulse Card -->
+                <div class="card pulse-card glass-panel" id="pulseCard">
+                    <div class="card-header">
+                        <h2>last baseline run</h2>
+                        <span class="status-badge live-badge">Ready</span>
+                    </div>
+                    
+                    <div class="metrics-grid">
+                        <div class="metric-box">
+                            <span class="metric-label">Total Reward</span>
+                            <span class="metric-value" id="valReward" data-val="0.00">0.00</span>
+                        </div>
+                        <div class="metric-box">
+                            <span class="metric-label">Steps Taken</span>
+                            <span class="metric-value" id="valSteps" data-val="0">0</span>
+                        </div>
+                        <div class="metric-box">
+                            <span class="metric-label">Interventions</span>
+                            <span class="metric-value highlight" id="valInterventions" data-val="0">0</span>
+                        </div>
+                        <div class="metric-box">
+                            <span class="metric-label">Completion</span>
+                            <span class="metric-value" id="valCompletion" data-val="0%">0%</span>
+                        </div>
+                    </div>
+
+                    <div class="frustration-meter">
+                        <div class="meter-header">
+                            <span>User Frustration (Stuck Level)</span>
+                            <span id="frustrationVal">0%</span>
+                        </div>
+                        <div class="progress-bar-bg">
+                            <div class="progress-bar-fill" id="frustrationFill" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Story Strip -->
+                <div class="card story-card glass-panel">
+                    <div class="card-header">
+                        <h2>from hackathon to playground</h2>
+                    </div>
+                    <div class="story-content" id="storyContent">
+                        <p>I built this because constant interruptions kill flow state. Let's see if the baseline agent can read the room before stepping in...</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Right Column: Analysis & Timeline -->
+            <section class="col-right">
+                
+                <!-- "How it thinks" Panel -->
+                <div class="card analysis-card glass-panel">
+                    <div class="card-header">
+                        <h2>how this thing thinks</h2>
+                    </div>
+                    <div class="analysis-content">
+                        <p>The logic isn't trying to be overly smart. It just watches the metrics and waits for the moment you actually need help:</p>
+                        <ul class="rule-list">
+                            <li><span class="code">consecutive_errors >= 2</span> &rarr; INTERVENE.</li>
+                            <li><span class="code">stalled_progress >= 3</span> &rarr; INTERVENE.</li>
+                            <li>Otherwise? Mind our own business and STAY SILENT.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Timeline Log -->
+                <div class="card timeline-card glass-panel">
+                    <div class="card-header">
+                        <h2>episode log</h2>
+                    </div>
+                    <div class="timeline-container" id="timelineContainer">
+                        <div class="timeline-empty">Awaiting telemetry...</div>
+                    </div>
+                </div>
+
+            </section>
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
