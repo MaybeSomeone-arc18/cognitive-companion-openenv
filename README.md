@@ -11,6 +11,10 @@ pinned: false
 
 **A sandbox to figure out when your AI teammate should shut up, and when it should actually drop in to save you.**
 
+> **🚀 Live Demo** — [Open the Dashboard on Hugging Face Spaces](https://maybesomeone19-cognitive-companion-openenv.hf.space/dashboard/index.html)
+
+![Cognitive Companion Dashboard](https://raw.githubusercontent.com/MaybeSomeone-arc18/cognitive-companion-openenv/main/dashboard/screenshot.png)
+
 ---
 
 ## The Problem I Needed to Solve
@@ -103,15 +107,17 @@ It'll immediately output a clean, consolidated JSON digest of the run snippet:
 
 Watching text parse on a terminal gets tedious. So I built a real-time visualization of the baseline agent's decision-making—a dark-mode, glassmorphism UI wired directly to the local telemetry.
 
-**Open it locally:**
+**🔗 [Open live on Hugging Face Spaces](https://maybesomeone19-cognitive-companion-openenv.hf.space/dashboard/index.html)**
+
+**Run locally instead:**
 
 ```bash
+# 1. Start the API
+uvicorn server.app:app --port 7860
+
+# 2. Open the dashboard
 open dashboard/index.html
 ```
-
-**Or visit it on the deployed Spaces endpoint:**
-
-`http://localhost:7860/dashboard`
 
 The dashboard surfaces the agent's internal monologue: it tracks the "frustration meter" in real-time, renders a live timeline mapping out `STAY SILENT` vs `INTERVENE` decisions, and translates the raw metrics into a readable, post-run narrative.
 

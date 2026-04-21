@@ -10,3 +10,4 @@ build/
 output.txt
 *.save
 validate.shchmod*
+dashboard/screenshot.png
