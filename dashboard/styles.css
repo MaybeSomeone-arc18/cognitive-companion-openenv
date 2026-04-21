@@ -398,6 +398,13 @@ h2 {
     line-height: 1.7;
 }
 
+.subtle-status {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.35);
+    margin-top: 0.5rem;
+    font-style: italic;
+}
+
 /* Responsive */
 @media (max-width: 900px) {
     .grid-layout {

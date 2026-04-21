@@ -35,7 +35,9 @@ document.addEventListener('DOMContentLoaded', () => {
         frustrationFill.style.width = '0%';
         
         timelineContainer.innerHTML = '';
-        storyContent.innerHTML = '<p>Agent is observing human workflow...</p>';
+        // Clear any prior status; keep the default story text
+        const statusEl = document.getElementById('story-status');
+        if (statusEl) statusEl.textContent = '';
 
         try {
             const spinner = runBtn.querySelector('.btn-spinner');
@@ -101,7 +103,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         } catch (error) {
             console.error("Backend fetch error:", error);
-            storyContent.innerHTML = '<p style="color:var(--danger)">Error connecting to backend API. Ensure uvicorn server is running on port 7860.</p>';
+            const statusEl = document.getElementById('story-status');
+            if (statusEl) {
+                statusEl.textContent = 'Live baseline run temporarily unavailable. Try again in a bit.';
+            }
         } finally {
             // Finalize Run
             isRunning = false;
