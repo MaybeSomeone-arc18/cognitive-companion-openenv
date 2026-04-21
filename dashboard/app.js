@@ -44,10 +44,15 @@ document.addEventListener('DOMContentLoaded', () => {
             spinner.style.display = 'inline-block';
             
             // Fetch live simulation from the backend
-            const response = await fetch('http://localhost:7860/baseline/run-once', {
+            const response = await fetch('/baseline/run-once', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' }
             });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+
             const data = await response.json();
             
             const steps = data.steps;
