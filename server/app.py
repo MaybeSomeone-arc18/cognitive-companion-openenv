@@ -151,7 +151,7 @@ if os.path.isdir(dashboard_path):
     app.mount("/dashboard", StaticFiles(directory=dashboard_path, html=True), name="dashboard")
 
 # Mount the core OpenEnv sub-app at the root, AFTER all custom overrides so they don't get shadowed
-app.mount("", openenv_app)
+app.mount("/api", openenv_app)
 
 def main():
     import uvicorn
