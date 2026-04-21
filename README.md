@@ -9,7 +9,7 @@ pinned: false
 
 # 🧠 Cognitive Companion
 
-**A sandbox to figure out when your AI teammate should shut up, and when it should actually drop in to save you.**
+**An environment for figuring out when your AI teammate should shut up — and when it should actually step in to save you.**
 
 > **🚀 Live Demo** — [Open the Dashboard on Hugging Face Spaces](https://maybesomeone19-cognitive-companion-openenv.hf.space/dashboard/index.html)
 
@@ -17,39 +17,39 @@ pinned: false
 
 ---
 
-## The Problem I Needed to Solve
+## The Problem
 
-Let's be candid: modern AI assistants have an egregious timing problem. They either over-help—interrupting your state of flow with unsolicited suggestions—or they atrophy, sitting idle while you languish on a bug you'll never decipher solo. The industry loves benchmarking *what* an LLM knows, but almost nobody is measuring the nuance of *when* it should intervene.
+AI assistants have a timing problem. They either over-help — interrupting your flow with suggestions you didn't ask for — or sit idle while you're stuck on something you'll never solve alone. Everyone benchmarks *what* an LLM knows. Almost nobody measures *when* it should speak up.
 
-I built the Cognitive Companion environment because constant, poorly-timed interruptions annihilate flow state. This is an OpenEnv-compatible arena specifically designed to train and evaluate AI agents on their intervention cadence, not just their intelligence.
-
----
-
-## How the Architecture Breathes
-
-The environment mimics an anxious human working against the clock. An AI agent acts as the observer, carefully parsing the human's telemetry before making a move.
-
-- **🧪 The Environment** — Simulates human toil. The user's `progress`, `stuck_level`, and `time_left` are volatile metrics that shift dynamically based on whether the agent helps or stays away.
-
-- **🤖 The Agent** — Every tick, it makes a tri-fold decision:
-  - `continue` — remain a silent spectator and let the human cook.
-  - `intervene` — step into the fray to alleviate friction.
-  - `switch_task` — pivot the objective to dissipate mounting frustration.
-
-- **👁️ The Telemetry** — The agent is drip-fed the user's `task_type`, `progress`, `stuck_level`, `time_left`, and an `intervention_available` boolean.
-
-- **🏆 The Shaping** — The reward mechanism is dense and unforgiving:
-  - Preserving flow when `stuck_level` is negligible → positive reinforcement.
-  - Idly watching the user spiral into frustration → steep penalties.
-  - Surgical interventions precisely when `stuck_level > 0.6` → massive rewards.
-  - Premature hand-holding → immediate penalty.
-  - Pushing the task to completion → up to a +0.95 bonus.
+I built this because poorly-timed interruptions destroy flow state. Cognitive Companion is an OpenEnv-compatible environment designed to train and evaluate agents on intervention timing, not just answer quality.
 
 ---
 
-## Getting Your Hands Dirty
+## How It Works
 
-**1. Clone & Bootstrap**
+The environment simulates a human working on a task under time pressure. An AI agent watches the human's state and decides what to do.
+
+- **🧪 Environment** — The user's `progress`, `stuck_level`, and `time_left` shift each step based on whether the agent helps or stays quiet.
+
+- **🤖 Agent** — Every step, it picks one of three actions:
+  - `continue` — stay silent, let the human work.
+  - `intervene` — step in and help.
+  - `switch_task` — change the task to reset frustration.
+
+- **👁️ Telemetry** — The agent sees `task_type`, `progress`, `stuck_level`, `time_left`, and `intervention_available`.
+
+- **🏆 Reward Shaping** — Dense feedback at every step:
+  - Respecting flow when frustration is low → positive reward.
+  - Watching the user spiral without helping → penalty.
+  - Well-timed intervention when `stuck_level > 0.6` → large reward.
+  - Premature intervention → penalty.
+  - Task completion → up to +0.95 bonus.
+
+---
+
+## Quickstart
+
+**1. Clone & install**
 
 ```bash
 git clone https://github.com/MaybeSomeone-arc18/cognitive-companion-openenv.git
@@ -58,15 +58,15 @@ python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-**2. Ignite the Engine**
+**2. Start the server**
 
 ```bash
 uvicorn server.app:app --host 0.0.0.0 --port 7860
 ```
 
-**3. Test the Plumbing**
+**3. Try it out**
 
-Instantiate a pristine episode:
+Start a new episode:
 
 ```bash
 curl -s http://localhost:7860/reset \
@@ -74,7 +74,7 @@ curl -s http://localhost:7860/reset \
   -d '{"difficulty": "medium"}' | python3 -m json.tool
 ```
 
-Force the agent's hand:
+Take an action:
 
 ```bash
 curl -s http://localhost:7860/step \
@@ -82,13 +82,13 @@ curl -s http://localhost:7860/step \
   -d '{"action": "intervene"}' | python3 -m json.tool
 ```
 
-You'll be up and running before your coffee gets cold.
+You should be up and running in under two minutes.
 
 ---
 
-## The Heuristic Baseline
+## Baseline Agent
 
-Instead of immediately throwing a massive LLM at the problem, I wrote a reproducible, deterministic baseline. It tracks heuristics—specifically, intervening only after consecutive errors or stalled progress vectors.
+Rather than jumping straight to an LLM, I wrote a simple deterministic baseline first. It watches for consecutive errors or stalled progress, and intervenes only when those thresholds are crossed.
 
 **Run it:**
 
@@ -96,16 +96,16 @@ Instead of immediately throwing a massive LLM at the problem, I wrote a reproduc
 python run_baseline.py
 ```
 
-It'll immediately output a clean, consolidated JSON digest of the run snippet:
+Outputs a clean JSON summary:
 `{"episode_id": "baseline-run", "total_steps": 16, "total_reward": 2.56, "interventions": 2, "completion": 0.95}`
 
-*(If you do want to throw an LLM at it, I wrote `inference.py` to handle exactly that.)*
+*(If you want to try an LLM-based agent instead, `inference.py` handles that.)*
 
 ---
 
-## The Dashboard: Visualizing the Agent's Brain
+## Dashboard
 
-Watching text parse on a terminal gets tedious. So I built a real-time visualization of the baseline agent's decision-making—a dark-mode, glassmorphism UI wired directly to the local telemetry.
+Reading terminal output gets old fast. So I built a real-time dashboard — dark mode, glassmorphism, wired directly to the API.
 
 **🔗 [Open live on Hugging Face Spaces](https://maybesomeone19-cognitive-companion-openenv.hf.space/dashboard/index.html)**
 
@@ -119,66 +119,66 @@ uvicorn server.app:app --port 7860
 open dashboard/index.html
 ```
 
-The dashboard surfaces the agent's internal monologue: it tracks the "frustration meter" in real-time, renders a live timeline mapping out `STAY SILENT` vs `INTERVENE` decisions, and translates the raw metrics into a readable, post-run narrative.
+It shows a live frustration meter, a step-by-step timeline of `STAY SILENT` vs `INTERVENE` decisions, and a short narrative of how the episode played out.
 
 ---
 
-## Metrics & Granular Telemetry
+## Metrics & Telemetry
 
-**Per‑step fields** (returned via `/step`):
+**Per‑step fields** (returned by `/step`):
 
 | Field                    | Type    | Description                                    |
 | ------------------------ | ------- | ---------------------------------------------- |
 | `task_type`              | string  | `"coding"` or `"content"`                      |
-| `progress`               | float   | Task completion trajectory, in (0, 1)          |
-| `stuck_level`            | float   | Quantified frustration, in (0, 1)              |
-| `time_left`              | int     | Steps before hard failure                      |
-| `intervention_available` | bool    | Constraints toggle                             |
-| `reward`                 | float   | Shaped consequence, firmly in [0.05, 0.95]     |
-| `done`                   | bool    | Terminal state indicator                       |
+| `progress`               | float   | Task completion, in (0, 1)                     |
+| `stuck_level`            | float   | User frustration, in (0, 1)                    |
+| `time_left`              | int     | Steps remaining                                |
+| `intervention_available` | bool    | Whether intervention is allowed                |
+| `reward`                 | float   | Shaped reward for the action, in [0.05, 0.95]  |
+| `done`                   | bool    | Whether the episode ended                      |
 
-By design, all grades and rewards are strictly clamped inside `(0, 1)`. We don't do absolute bounding zeros or ones here.
-
----
-
-## Origins and Ecosystem
-
-I originally architected this for the **Meta PyTorch OpenEnv Hackathon**. What started as a conceptual MVP has fleshed out into a full OpenEnv-spec'd framework, complete with strictly validated Pydantic payloads, YAML task scaffolding, autonomous grading scripts, and a self-contained Docker orchestration.
-
-It's evolved into a highly robust arena for researchers and devs exploring RL, fine-tuning scenarios, or frankly, just trying to teach machines basic situational awareness.
+All scores and rewards are strictly inside `(0, 1)` — never exactly 0 or 1.
 
 ---
 
-## Tech Stack & Architecture Topology
+## Background
 
-**The Arsenal:** Python · FastAPI · Pydantic · OpenEnv · OpenAI SDK · Docker · Hugging Face Spaces
+I originally built this for the **Meta PyTorch OpenEnv Hackathon**. It started as a quick prototype and grew into a full OpenEnv-spec environment with typed Pydantic models, YAML task definitions, automated grading, and a Dockerized deployment.
+
+It's now a reusable arena for RL research, agent evaluation, or anyone who wants to explore optimal intervention timing in human-AI collaboration.
+
+---
+
+## Tech Stack & Structure
+
+**Stack:** Python · FastAPI · Pydantic · OpenEnv · OpenAI SDK · Docker · Hugging Face Spaces
 
 ```
 cognitive-companion-openenv/
 ├── server/
-│   ├── app.py              # Application core — routes, bindings, and /dashboard surfacing
-│   └── environment.py      # The engine — Q-learning, state permutations, reward shaping
+│   ├── app.py              # FastAPI app — routes, /baseline/run-once, /dashboard
+│   └── environment.py      # Core env logic — Q-learning, reward shaping
 ├── dashboard/
-│   ├── index.html          # Semantic skeletal structure
-│   ├── styles.css          # Glassmorphism aesthetics and keyframe kinematics
-│   └── app.js              # Fetch layer binding the UI to /baseline/run-once
-├── models.py               # Pydantic schemas validating our telemetry
-├── graders.py              # Evaluator reducing temporal trajectories to a single score
-├── client.py               # OpenEnv-compliant ingestion client
-├── inference.py            # Baseline LLM agent orchestrator
-├── baseline_agent.py       # Deterministic heuristic fallback
-├── run_baseline.py         # CLI runner emitting clean telemetry blocks
+│   ├── index.html          # Dashboard UI
+│   ├── styles.css          # Dark mode + glassmorphism
+│   └── app.js              # Fetches /baseline/run-once and animates results
+├── models.py               # Pydantic models: Action, CognitiveObservation, EnvState
+├── graders.py              # Score grader — trajectory → clamped score in (0, 1)
+├── client.py               # OpenEnv-compatible client
+├── inference.py            # LLM-based agent with structured logging
+├── baseline_agent.py       # Heuristic baseline (intervene on stuck/errors)
+├── run_baseline.py         # CLI runner — prints episode summary as JSON
 ├── tests/
-│   └── test_env_baseline.py  # Self-contained smoke tests with server guards
-├── openenv.yaml            # Environment schematics & grader bindings
-├── Dockerfile              # Immutable, portable container configs
-└── requirements.txt        # The dependency tree
+│   └── test_env_baseline.py  # Smoke tests with server-up guard
+├── openenv.yaml            # Task definitions, schema, grader config
+├── Dockerfile              # python:3.11-slim, port 7860
+└── requirements.txt        # Dependencies
 ```
 
 ---
 
-## The Roadmap Ahead
+## Future Work
 
-- **Neuro-Symbolic Upgrades** — Benchmarking pure RL algorithms (PPO) against the heuristic foundations.
-- **Task Expansion** — Integrating debugging topologies, research labyrinths, and long-form writing tasks to see how flow disruption changes per domain.
-- **Multi-turn Dialogue** — It's one thing to intervene; it's another entirely to say something actually useful. I plan to fold in LLM dialogue extraction to grade the *quality* of the help alongside the timing.
+- **RL Agents** — Benchmark trained policies (PPO, DQN) against the heuristic baseline.
+- **More Task Types** — Add debugging, research, and long-form writing scenarios with different flow dynamics.
+- **Multi-turn Dialogue** — Intervening is one thing; saying something useful is another. I want to grade the *quality* of the help, not just the timing.
