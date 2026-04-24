@@ -43,7 +43,7 @@ action_space:
     - 'switch_task': move the human to a different task mode.
 
 endpoints:
-  health: /
+  health: /health
   reset: /reset
   step: /step
   state: /state

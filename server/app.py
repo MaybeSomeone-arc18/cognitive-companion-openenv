@@ -52,9 +52,9 @@ app.add_middleware(
 _env = CognitiveCompanionEnvironment()
 
 
-@app.get("/")
-def root():
-    return {"message": "API running. Visit /dashboard/index.html"}
+@app.get("/api/status")
+def api_status():
+    return {"message": "API running. Dashboard is at /"}
 
 
 from baseline_agent import BaselineAgent
@@ -142,16 +142,16 @@ def grade_episode(payload: dict):
     return {"task_id": task_id, "score": score}
 
 
-# Serve static dashboard — accessible at /dashboard on the deployed Space
+# Mount the core OpenEnv sub-app at /api first so it takes precedence over the static root
+app.mount("/api", openenv_app)
+
+# Serve static dashboard — accessible at / on the deployed Space
 import os
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 dashboard_path = os.path.join(BASE_DIR, "dashboard")
 
 if os.path.isdir(dashboard_path):
-    app.mount("/dashboard", StaticFiles(directory=dashboard_path, html=True), name="dashboard")
-
-# Mount the core OpenEnv sub-app at the root, AFTER all custom overrides so they don't get shadowed
-app.mount("/api", openenv_app)
+    app.mount("/", StaticFiles(directory=dashboard_path, html=True), name="dashboard")
 
 def main():
     import uvicorn
