@@ -1,0 +1,265 @@
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Dashboard - Cognitive Companion</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "on-error-container": "#6e1400",
+                      "primary-fixed": "#d5e8d2",
+                      "on-primary-fixed": "#344334",
+                      "surface-variant": "#e1e3dd",
+                      "secondary-container": "#ffdad5",
+                      "surface-container-high": "#e8e9e3",
+                      "on-secondary-fixed": "#653028",
+                      "surface-container-low": "#f4f4ef",
+                      "background": "#faf9f5",
+                      "tertiary-container": "#fad8a4",
+                      "on-primary": "#ecfee8",
+                      "tertiary-dim": "#674f27",
+                      "secondary-dim": "#7d433b",
+                      "error-container": "#fd795a",
+                      "surface": "#faf9f5",
+                      "on-secondary": "#fff7f6",
+                      "on-secondary-container": "#7b4139",
+                      "secondary-fixed-dim": "#ffc7bf",
+                      "on-surface-variant": "#5d605b",
+                      "primary-container": "#d5e8d2",
+                      "on-tertiary-container": "#624a23",
+                      "primary": "#536352",
+                      "on-surface": "#30332f",
+                      "secondary-fixed": "#ffdad5",
+                      "outline": "#797c76",
+                      "surface-container": "#eeeee9",
+                      "surface-dim": "#d9dbd5",
+                      "on-secondary-fixed-variant": "#874b42",
+                      "outline-variant": "#b0b3ad",
+                      "on-primary-container": "#465645",
+                      "error": "#a73b21",
+                      "on-tertiary-fixed-variant": "#6c542b",
+                      "surface-container-highest": "#e1e3dd",
+                      "surface-tint": "#536352",
+                      "primary-dim": "#475747",
+                      "error-dim": "#791903",
+                      "tertiary": "#745b32",
+                      "on-background": "#30332f",
+                      "tertiary-fixed": "#fad8a4",
+                      "inverse-on-surface": "#9d9d9a",
+                      "on-primary-fixed-variant": "#50604f",
+                      "on-tertiary-fixed": "#4d3812",
+                      "inverse-primary": "#ecffe8",
+                      "primary-fixed-dim": "#c7d9c4",
+                      "surface-bright": "#faf9f5",
+                      "on-tertiary": "#fff8f2",
+                      "on-error": "#fff7f6",
+                      "surface-container-lowest": "#ffffff",
+                      "tertiary-fixed-dim": "#ebca97",
+                      "secondary": "#8b4e46",
+                      "inverse-surface": "#0d0f0d"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem"
+              },
+              "spacing": {},
+              "fontFamily": {
+                      "headline": ["Inter"],
+                      "body": ["Inter"],
+                      "label": ["Inter"]
+              }
+      },
+          },
+        }
+      </script>
+<style>
+        body {
+            background-color: theme('colors.background');
+            color: theme('colors.on-surface');
+            position: relative;
+        }
+        
+        /* Subtle Noise Texture overlay */
+        body::before {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.03'/%3E%3C/svg%3E");
+            pointer-events: none;
+            z-index: 50;
+        }
+
+        /* Hand-drawn effect classes */
+        .sketch-border {
+            border: 1px solid theme('colors.outline-variant');
+            border-radius: 8px 12px 10px 8px / 10px 8px 12px 10px;
+        }
+        
+        .sketch-underline {
+            position: relative;
+        }
+        .sketch-underline::after {
+            content: '';
+            position: absolute;
+            bottom: -4px;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background-color: theme('colors.outline-variant');
+            border-radius: 50%;
+            transform: rotate(-1deg);
+        }
+
+        .highlight-wash {
+            background-color: theme('colors.tertiary-container');
+            padding: 0 4px;
+            margin: 0 -4px;
+            border-radius: 2px 6px 3px 5px;
+        }
+    </style>
+</head>
+<body class="font-body text-body-lg min-h-screen flex flex-col antialiased">
+<!-- TopAppBar -->
+<header class="bg-[#faf9f5] dark:bg-zinc-900 font-['Inter'] tracking-tight leading-relaxed text-lg border-b-2 border-stone-200/40 dark:border-stone-800/40 border-dashed flat no-shadows docked full-width top-0 z-40">
+<div class="flex justify-between items-center px-8 py-6 w-full max-w-screen-2xl mx-auto">
+<div class="text-2xl font-semibold italic text-[#536352] dark:text-stone-100 tracking-tighter" style=""><span style="font-style: normal;">Cognitive Companion</span></div>
+<!-- Hide nav links on mobile, show on md+ -->
+<nav class="hidden md:flex gap-8">
+<a class="text-[#536352] font-bold border-b-2 border-[#536352] hover:bg-stone-100 dark:hover:bg-stone-800/50 transition-colors duration-300 scale-95 transition-transform ease-in-out px-2 py-1" href="#" style="">Dashboard</a>
+<a class="text-stone-400 dark:text-stone-500 hover:bg-stone-100 dark:hover:bg-stone-800/50 transition-colors duration-300 scale-95 transition-transform ease-in-out px-2 py-1" href="#" style="">Activity</a>
+<a class="text-stone-400 dark:text-stone-500 hover:bg-stone-100 dark:hover:bg-stone-800/50 transition-colors duration-300 scale-95 transition-transform ease-in-out px-2 py-1" href="#" style="">Journal</a>
+<a class="text-stone-400 dark:text-stone-500 hover:bg-stone-100 dark:hover:bg-stone-800/50 transition-colors duration-300 scale-95 transition-transform ease-in-out px-2 py-1" href="#" style="">Settings</a>
+</nav>
+</div>
+</header>
+<div class="flex flex-1 max-w-screen-2xl w-full mx-auto overflow-hidden">
+<!-- Main Canvas -->
+<main class="flex-1 p-8 md:p-12 lg:p-16 flex flex-col xl:flex-row gap-12 overflow-y-auto">
+<!-- Left Panel: Baseline Run -->
+<section class="w-full xl:w-80 flex-shrink-0 flex flex-col gap-8">
+<div class="space-y-2">
+<h1 class="text-display-lg font-headline font-bold tracking-tight text-on-surface" style="">Overview</h1>
+<p class="text-body-lg text-on-surface-variant max-w-md" style="">The latest snapshot of cognitive baseline metrics.</p>
+</div>
+<div class="bg-surface-container-low p-8 sketch-border relative">
+<div class="absolute -top-3 -right-3 text-tertiary transform rotate-12">
+<span class="material-symbols-outlined" style="font-variation-settings: &quot;FILL&quot; 1;">push_pin</span>
+</div>
+<h2 class="text-headline-lg font-headline font-semibold mb-6 sketch-underline inline-block text-on-surface" style="">Last Baseline Run</h2>
+<div class="space-y-6">
+<div>
+<p class="text-label-sm text-on-surface-variant uppercase tracking-widest mb-1" style="">Total Reward</p>
+<p class="text-3xl font-headline font-bold text-primary" style="">3.15</p>
+</div>
+<div class="grid grid-cols-2 gap-6">
+<div>
+<p class="text-label-sm text-on-surface-variant uppercase tracking-widest mb-1" style="">Steps Taken</p>
+<p class="text-xl font-headline font-semibold text-on-surface" style="">12</p>
+</div>
+<div>
+<p class="text-label-sm text-on-surface-variant uppercase tracking-widest mb-1" style="">Interventions</p>
+<p class="text-xl font-headline font-semibold text-on-surface" style="">0</p>
+</div>
+</div>
+<div>
+<p class="text-label-sm text-on-surface-variant uppercase tracking-widest mb-2" style="">Completion</p>
+<div class="flex items-center gap-4">
+<div class="flex-1 h-3 bg-surface-variant rounded-full overflow-hidden" style="border-radius: 8px 3px 6px 4px;">
+<div class="h-full bg-primary" style="width: 99%; border-radius: 8px 0 0 4px;"></div>
+</div>
+<span class="text-headline-lg font-bold text-on-surface" style="">99%</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Annotation snippet -->
+<div class="flex gap-3 items-start p-4 transform -rotate-1 opacity-80">
+<span class="material-symbols-outlined text-outline" style="">arrow_right_alt</span>
+<p class="text-label-md font-label text-outline leading-relaxed italic" style="">Metrics remain stable compared to yesterday's run.</p>
+</div>
+</section>
+<!-- Center: Graph Canvas -->
+<section class="flex-1 min-h-[500px] relative border-l border-r border-dashed border-outline-variant/30 px-8 flex flex-col justify-center items-center">
+<div class="absolute top-8 left-8">
+<h2 class="text-headline-lg font-headline text-on-surface opacity-60" style="">Progression</h2>
+</div>
+<!-- Hand-drawn style graph container -->
+<div class="w-full max-w-2xl aspect-[16/9] relative">
+<!-- Graph Line (SVG) -->
+<svg class="absolute inset-0 w-full h-full" preserveAspectRatio="none" viewBox="0 0 100 100">
+<!-- Grid lines (faint) -->
+<line class="text-outline-variant opacity-30 stroke-dasharray-[2_2]" stroke="currentColor" stroke-width="0.2" x1="0" x2="100" y1="25" y2="25"></line>
+<line class="text-outline-variant opacity-30 stroke-dasharray-[2_2]" stroke="currentColor" stroke-width="0.2" x1="0" x2="100" y1="50" y2="50"></line>
+<line class="text-outline-variant opacity-30 stroke-dasharray-[2_2]" stroke="currentColor" stroke-width="0.2" x1="0" x2="100" y1="75" y2="75"></line>
+<!-- The Path -->
+<path class="text-primary" d="M 0,80 Q 20,70 40,50 T 70,40 T 100,20" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.5"></path>
+<!-- Data Points -->
+<circle class="text-primary" cx="20" cy="65" fill="currentColor" r="1.5"></circle>
+<circle class="text-primary" cx="40" cy="50" fill="currentColor" r="1.5"></circle>
+<circle class="text-primary" cx="70" cy="40" fill="currentColor" r="1.5"></circle>
+</svg>
+<!-- Echo Character (SVG) -->
+<div class="absolute" style="left: 68%; top: 38%; transform: translate(-50%, -100%);">
+<svg class="text-primary-container" height="40" viewBox="0 0 40 40" width="40">
+<path class="text-primary" d="M 10,30 C 5,20 15,10 20,12 C 25,14 35,5 35,20 C 35,35 25,35 20,38 C 15,40 10,40 10,30 Z" fill="currentColor" stroke="currentColor" stroke-width="1"></path>
+<!-- Eyes -->
+<circle class="text-on-surface" cx="18" cy="22" fill="currentColor" r="2"></circle>
+<circle class="text-on-surface" cx="26" cy="20" fill="currentColor" r="2"></circle>
+</svg>
+<p class="text-label-sm font-label text-outline absolute -top-4 -right-12 whitespace-nowrap transform rotate-2" style="">Echo resting</p>
+</div>
+<!-- Highlighted Area (simulating soft beige/pale green segment) -->
+<div class="absolute inset-0 pointer-events-none" style="clip-path: polygon(40% 50%, 70% 40%, 70% 100%, 40% 100%); background: linear-gradient(to bottom, var(--tw-colors-primary-container), transparent); opacity: 0.1;"></div>
+</div>
+<div class="mt-8 text-center max-w-md">
+<p class="text-body-lg text-on-surface-variant leading-relaxed" style="">The trajectory stabilizes. The journey continues with measured steps.</p>
+</div>
+</section>
+<!-- Right Panel: Episode Log -->
+<section class="w-full xl:w-80 flex-shrink-0 flex flex-col gap-6">
+<div class="flex items-center gap-3 mb-4">
+<span class="material-symbols-outlined text-outline" style="">history</span>
+<h2 class="text-headline-lg font-headline text-on-surface" style="">Episode Log</h2>
+</div>
+<div class="relative pl-6 border-l-2 border-outline-variant/30 border-dashed space-y-10">
+<!-- Timeline Item 1 -->
+<div class="relative">
+<div class="absolute -left-[31px] top-1 w-3 h-3 bg-background border-2 border-primary rounded-full"></div>
+<p class="text-label-sm text-outline-variant mb-1" style="">09:41 AM</p>
+<div class="bg-surface-container-lowest p-4 sketch-border">
+<p class="text-body-lg text-on-surface leading-relaxed" style="">Routine baseline check initiated.</p>
+</div>
+</div>
+<!-- Timeline Item 2 -->
+<div class="relative">
+<div class="absolute -left-[31px] top-1 w-3 h-3 bg-primary rounded-full"></div>
+<p class="text-label-sm text-outline-variant mb-1" style="">09:45 AM</p>
+<div class="bg-surface-container-lowest p-4 sketch-border relative">
+<p class="text-body-lg text-on-surface leading-relaxed" style=""><span class="highlight-wash" style="">Observing user response...</span></p>
+<!-- Note in margin -->
+<div class="absolute -right-12 top-4 transform rotate-3 hidden lg:block">
+<span class="material-symbols-outlined text-secondary text-sm" style="">edit</span>
+</div>
+</div>
+</div>
+<!-- Timeline Item 3 -->
+<div class="relative">
+<div class="absolute -left-[31px] top-1 w-3 h-3 bg-background border-2 border-outline rounded-full"></div>
+<p class="text-label-sm text-outline-variant mb-1" style="">10:12 AM</p>
+<div class="bg-surface-container-lowest p-4 sketch-border opacity-70">
+<p class="text-body-lg text-on-surface leading-relaxed italic" style="">Awaiting next sequence.</p>
+</div>
+</div>
+</div>
+</section>
+</main>
+</div>
+</body></html>

@@ -1,117 +1,342 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cognitive Companion Dashboard</title>
-    <!-- Modern Typography: Inter & JetBrains Mono -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css">
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+  <title>Dashboard - Cognitive Companion</title>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+    rel="stylesheet">
+  <script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "on-error-container": "#6e1400",
+            "primary-fixed": "#d5e8d2",
+            "on-primary-fixed": "#344334",
+            "surface-variant": "#e1e3dd",
+            "secondary-container": "#ffdad5",
+            "surface-container-high": "#e8e9e3",
+            "on-secondary-fixed": "#653028",
+            "surface-container-low": "#f4f4ef",
+            "background": "#faf9f5",
+            "tertiary-container": "#fad8a4",
+            "on-primary": "#ecfee8",
+            "tertiary-dim": "#674f27",
+            "secondary-dim": "#7d433b",
+            "error-container": "#fd795a",
+            "surface": "#faf9f5",
+            "on-secondary": "#fff7f6",
+            "on-secondary-container": "#7b4139",
+            "secondary-fixed-dim": "#ffc7bf",
+            "on-surface-variant": "#5d605b",
+            "primary-container": "#d5e8d2",
+            "on-tertiary-container": "#624a23",
+            "primary": "#536352",
+            "on-surface": "#30332f",
+            "secondary-fixed": "#ffdad5",
+            "outline": "#797c76",
+            "surface-container": "#eeeee9",
+            "surface-dim": "#d9dbd5",
+            "on-secondary-fixed-variant": "#874b42",
+            "outline-variant": "#b0b3ad",
+            "on-primary-container": "#465645",
+            "error": "#a73b21",
+            "on-tertiary-fixed-variant": "#6c542b",
+            "surface-container-highest": "#e1e3dd",
+            "surface-tint": "#536352",
+            "primary-dim": "#475747",
+            "error-dim": "#791903",
+            "tertiary": "#745b32",
+            "on-background": "#30332f",
+            "tertiary-fixed": "#fad8a4",
+            "inverse-on-surface": "#9d9d9a",
+            "on-primary-fixed-variant": "#50604f",
+            "on-tertiary-fixed": "#4d3812",
+            "inverse-primary": "#ecffe8",
+            "primary-fixed-dim": "#c7d9c4",
+            "surface-bright": "#faf9f5",
+            "on-tertiary": "#fff8f2",
+            "on-error": "#fff7f6",
+            "surface-container-lowest": "#ffffff",
+            "tertiary-fixed-dim": "#ebca97",
+            "secondary": "#8b4e46",
+            "inverse-surface": "#0d0f0d"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.125rem",
+            "lg": "0.25rem",
+            "xl": "0.5rem",
+            "full": "0.75rem"
+          },
+          "spacing": {},
+          "fontFamily": {
+            "headline": ["Inter"],
+            "body": ["Inter"],
+            "label": ["Inter"]
+          }
+        },
+      },
+    }
+  </script>
+  <style>
+    body {
+      background-color: theme('colors.background');
+      color: theme('colors.on-surface');
+      position: relative;
+    }
+
+    /* Subtle Noise Texture overlay */
+    body::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.03'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 50;
+    }
+
+    /* Hand-drawn effect classes */
+    .sketch-border {
+      border: 1px solid theme('colors.outline-variant');
+      border-radius: 8px 12px 10px 8px / 10px 8px 12px 10px;
+    }
+
+    .sketch-underline {
+      position: relative;
+    }
+
+    .sketch-underline::after {
+      content: '';
+      position: absolute;
+      bottom: -4px;
+      left: 0;
+      width: 100%;
+      height: 2px;
+      background-color: theme('colors.outline-variant');
+      border-radius: 50%;
+      transform: rotate(-1deg);
+    }
+
+    .highlight-wash {
+      background-color: theme('colors.tertiary-container');
+      padding: 0 4px;
+      margin: 0 -4px;
+      border-radius: 2px 6px 3px 5px;
+    }
+  </style>
 </head>
-<body>
-    <div class="container fade-in-hero">
-        <!-- Hero Section -->
-        <header class="hero">
-            <div class="hero-content">
-                <h1>Cognitive Companion</h1>
-                <p class="tagline">An anxious little AI trying to figure out when to shut up, and when to save you.</p>
-            </div>
-            <div class="hero-action">
-                <button id="runBaselineBtn" class="btn-primary">
-                    <span class="btn-text">Run baseline evaluation</span>
-                    <span class="btn-spinner" style="display: none;"></span>
-                </button>
-            </div>
-        </header>
 
-        <!-- Main Layout Grid -->
-        <main class="grid-layout">
-            
-            <!-- Left Column: Pulse & Story -->
-            <section class="col-left">
-                <!-- Episode Pulse Card -->
-                <div class="card pulse-card glass-panel" id="pulseCard">
-                    <div class="card-header">
-                        <h2>last baseline run</h2>
-                        <span class="status-badge live-badge">Ready</span>
-                    </div>
-                    
-                    <div class="metrics-grid">
-                        <div class="metric-box">
-                            <span class="metric-label">Total Reward</span>
-                            <span class="metric-value" id="valReward" data-val="0.00">0.00</span>
-                        </div>
-                        <div class="metric-box">
-                            <span class="metric-label">Steps Taken</span>
-                            <span class="metric-value" id="valSteps" data-val="0">0</span>
-                        </div>
-                        <div class="metric-box">
-                            <span class="metric-label">Interventions</span>
-                            <span class="metric-value highlight" id="valInterventions" data-val="0">0</span>
-                        </div>
-                        <div class="metric-box">
-                            <span class="metric-label">Completion</span>
-                            <span class="metric-value" id="valCompletion" data-val="0%">0%</span>
-                        </div>
-                    </div>
-
-                    <div class="frustration-meter">
-                        <div class="meter-header">
-                            <span>User Frustration (Stuck Level)</span>
-                            <span id="frustrationVal">0%</span>
-                        </div>
-                        <div class="progress-bar-bg">
-                            <div class="progress-bar-fill" id="frustrationFill" style="width: 0%"></div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Story Strip -->
-                <div class="card story-card glass-panel">
-                    <div class="card-header">
-                        <h2>from hackathon to playground</h2>
-                    </div>
-                    <div class="story-content" id="storyContent">
-                        <p>I built this because constant interruptions kill flow state. Let's see if the baseline agent can read the room before stepping in...</p>
-                        <p id="story-status" class="subtle-status"></p>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Right Column: Analysis & Timeline -->
-            <section class="col-right">
-                
-                <!-- "How it thinks" Panel -->
-                <div class="card analysis-card glass-panel">
-                    <div class="card-header">
-                        <h2>how this thing thinks</h2>
-                    </div>
-                    <div class="analysis-content">
-                        <p>The logic isn't trying to be overly smart. It just watches the metrics and waits for the moment you actually need help:</p>
-                        <ul class="rule-list">
-                            <li><span class="code">consecutive_errors >= 2</span> &rarr; INTERVENE.</li>
-                            <li><span class="code">stalled_progress >= 3</span> &rarr; INTERVENE.</li>
-                            <li>Otherwise? Mind our own business and STAY SILENT.</li>
-                        </ul>
-                    </div>
-                </div>
-
-                <!-- Timeline Log -->
-                <div class="card timeline-card glass-panel">
-                    <div class="card-header">
-                        <h2>episode log</h2>
-                    </div>
-                    <div class="timeline-container" id="timelineContainer">
-                        <div class="timeline-empty">Awaiting telemetry...</div>
-                    </div>
-                </div>
-
-            </section>
-        </main>
+<body class="font-body text-body-lg min-h-screen flex flex-col antialiased bg-[#faf9f5]">
+  <!-- TopAppBar -->
+  <header
+    class="bg-[#faf9f5] font-['Inter'] tracking-tight leading-relaxed text-lg border-b-2 border-stone-200/40 border-dashed flat no-shadows docked full-width top-0 z-40 relative">
+    <div class="flex justify-between items-center px-8 py-6 w-full max-w-screen-2xl mx-auto">
+      <div class="text-2xl font-semibold italic text-[#536352] tracking-tighter" style=""><span
+          style="font-style: normal;">Cognitive Companion</span></div>
+      <!-- Hide nav links on mobile, show on md+ -->
+      <nav class="hidden md:flex gap-8">
+        <a class="text-[#536352] font-bold border-b-2 border-[#536352] hover:bg-stone-100 transition-colors duration-300 scale-95 transition-transform ease-in-out px-2 py-1"
+          href="#" style="">Dashboard</a>
+      </nav>
     </div>
+  </header>
+  <div class="flex flex-1 max-w-screen-2xl w-full mx-auto overflow-hidden relative z-40">
+    <!-- Main Canvas -->
+    <main class="flex-1 p-8 md:p-12 lg:p-16 flex flex-col xl:flex-row gap-12 overflow-y-auto">
+      <!-- Left Panel: Baseline Run -->
+      <section class="w-full xl:w-80 flex-shrink-0 flex flex-col gap-8">
+        <div class="space-y-2">
+          <h1 class="text-display-lg font-headline font-bold tracking-tight text-on-surface" style="">Overview</h1>
+          <p class="text-body-lg text-on-surface-variant max-w-md" style="">The latest snapshot of cognitive baseline
+            metrics.</p>
+        </div>
 
-    <script src="app.js"></script>
+        <button id="runBaselineBtn"
+          class="w-full bg-primary text-on-primary py-3 px-4 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-primary-dim transition-colors shadow-sm">
+          <span class="btn-text">Run baseline evaluation</span>
+          <svg class="btn-spinner animate-spin h-5 w-5 hidden" xmlns="http://www.w3.org/2000/svg" fill="none"
+            viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+            </path>
+          </svg>
+        </button>
+
+        <div class="bg-surface-container-low p-8 sketch-border relative" id="pulseCard">
+          <div class="absolute -top-3 -right-3 text-tertiary transform rotate-12">
+            <span class="material-symbols-outlined" style="font-variation-settings: &quot;FILL&quot; 1;">push_pin</span>
+          </div>
+          <div class="flex justify-between items-center mb-6">
+            <h2 class="text-headline-lg font-headline font-semibold sketch-underline inline-block text-on-surface"
+              style="">Last Baseline Run</h2>
+            <span
+              class="status-badge text-xs font-bold uppercase px-2 py-1 rounded-full bg-surface-variant text-on-surface-variant">Ready</span>
+          </div>
+
+          <div class="space-y-6">
+            <div>
+              <p class="text-label-sm text-on-surface-variant uppercase tracking-widest mb-1" style="">Total Reward</p>
+              <p class="text-3xl font-headline font-bold text-primary" id="valReward">0.00</p>
+            </div>
+            <div class="grid grid-cols-2 gap-6">
+              <div>
+                <p class="text-label-sm text-on-surface-variant uppercase tracking-widest mb-1" style="">Steps Taken</p>
+                <p class="text-xl font-headline font-semibold text-on-surface" id="valSteps">0</p>
+              </div>
+              <div>
+                <p class="text-label-sm text-on-surface-variant uppercase tracking-widest mb-1" style="">Interventions
+                </p>
+                <p class="text-xl font-headline font-semibold text-on-surface transition-colors duration-300"
+                  id="valInterventions">0</p>
+              </div>
+            </div>
+            <div>
+              <p class="text-label-sm text-on-surface-variant uppercase tracking-widest mb-2" style="">Completion</p>
+              <div class="flex items-center gap-4">
+                <div class="flex-1 h-3 bg-surface-variant rounded-full overflow-hidden"
+                  style="border-radius: 8px 3px 6px 4px;">
+                  <div class="h-full bg-primary transition-all duration-300" id="completionFill"
+                    style="width: 0%; border-radius: 8px 0 0 4px;"></div>
+                </div>
+                <span class="text-headline-lg font-bold text-on-surface w-16 text-right" id="valCompletion">0%</span>
+              </div>
+            </div>
+
+            <div>
+              <p class="text-label-sm text-on-surface-variant uppercase tracking-widest mb-2" style="">Frustration</p>
+              <div class="flex items-center gap-4">
+                <div class="flex-1 h-3 bg-surface-variant rounded-full overflow-hidden"
+                  style="border-radius: 8px 3px 6px 4px;">
+                  <div class="h-full bg-error transition-all duration-300" id="frustrationFill"
+                    style="width: 0%; border-radius: 8px 0 0 4px;"></div>
+                </div>
+                <span class="text-headline-lg font-bold text-on-surface w-16 text-right" id="frustrationVal">0%</span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+        <!-- Annotation snippet -->
+        <div class="flex gap-3 items-start p-4 transform -rotate-1 opacity-80">
+          <span class="material-symbols-outlined text-outline" style="">arrow_right_alt</span>
+          <p class="text-label-md font-label text-outline leading-relaxed italic" style="">Metrics remain stable
+            compared to yesterday's run.</p>
+        </div>
+      </section>
+      <!-- Center: Graph Canvas -->
+      <section
+        class="flex-1 min-h-[500px] relative border-l border-r border-dashed border-outline-variant/30 px-8 flex flex-col items-center">
+        <div class="absolute top-8 left-8">
+          <h2 class="text-headline-lg font-headline text-on-surface opacity-60" style="">Progression</h2>
+        </div>
+
+        <div class="w-full max-w-2xl mx-auto flex flex-col gap-6 mt-16 relative z-10">
+
+          <!-- 1. Frustration / Telemetry Graph Panel -->
+          <section id="frustration-telemetry"
+            class="bg-surface-container-lowest rounded-2xl p-6 shadow-sm border border-outline-variant/30 relative group">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="text-sm font-semibold uppercase tracking-wide text-on-surface-variant">
+                Frustration Telemetry
+              </h3>
+              <span id="frustration-status"
+                class="text-xs font-bold uppercase tracking-widest px-2 py-1 rounded bg-surface-variant text-on-surface-variant">
+                Awaiting telemetry...
+              </span>
+            </div>
+
+            <!-- Interactive Graph Container -->
+            <div id="frustration-graph"
+              class="w-full h-48 relative bg-surface-container/20 rounded-xl overflow-visible border border-outline-variant/20 flex items-center justify-center">
+              <!-- SVG will be injected here -->
+              <span id="frustration-placeholder"
+                class="text-sm text-on-surface-variant/50 italic pointer-events-none absolute z-10">
+                Awaiting telemetry...
+              </span>
+            </div>
+
+            <div id="frustration-details"
+              class="mt-4 text-sm font-medium text-on-surface-variant bg-surface-container-low px-4 py-3 rounded-lg border border-outline-variant/20">
+              No steps yet.
+            </div>
+          </section>
+
+          <!-- 2. Echo Character Panel -->
+          <div
+            class="bg-surface-container-lowest rounded-2xl p-6 shadow-sm border border-outline-variant/30 flex items-center gap-6"
+            id="echoPanel">
+            <!-- Avatar / Visual -->
+            <div
+              class="relative w-24 h-24 flex-shrink-0 flex items-center justify-center rounded-2xl bg-surface-container border border-outline-variant/20 overflow-hidden">
+              <!-- Gentle pulsing ring -->
+              <div
+                class="absolute w-16 h-16 bg-primary/20 rounded-full animate-ping opacity-50 transition-colors duration-500"
+                id="echoPulse"></div>
+              <!-- Inner Orb -->
+              <div
+                class="relative w-12 h-12 bg-primary-container rounded-full shadow-inner flex items-center justify-center overflow-hidden border border-primary/20 transition-colors duration-500"
+                id="echoBg">
+                <!-- SVG Avatar -->
+                <svg viewBox="0 0 100 100"
+                  class="w-full h-full text-primary transition-transform duration-1000 scale-90" id="echoAvatar">
+                  <!-- Base face outline -->
+                  <circle cx="50" cy="50" r="46" fill="currentColor" opacity="0.1" />
+                  <!-- Mouth -->
+                  <path d="M 35,60 Q 50,70 65,60" fill="none" stroke="currentColor" stroke-width="5"
+                    stroke-linecap="round" id="echoMouth" class="transition-all duration-300" />
+                  <!-- Eyes (blinking) -->
+                  <g class="animate-pulse">
+                    <path d="M 35,45 Q 35,35 40,40" stroke="currentColor" stroke-width="5" stroke-linecap="round"
+                      fill="none" id="echoEyeL" />
+                    <path d="M 65,45 Q 65,35 60,40" stroke="currentColor" stroke-width="5" stroke-linecap="round"
+                      fill="none" id="echoEyeR" />
+                  </g>
+                </svg>
+              </div>
+              <!-- Status dot -->
+              <div
+                class="absolute bottom-2 right-2 w-3.5 h-3.5 bg-primary rounded-full border-2 border-surface-container transition-colors duration-300 shadow-sm"
+                id="echoStatusDot"></div>
+            </div>
+
+            <!-- Text Content -->
+            <div id="echo-panel" class="flex-1 space-y-1">
+              <p id="echo-state"
+                class="text-[11px] font-semibold uppercase tracking-wide text-on-surface flex items-center gap-1">
+                <span id="echo-state-indicator" class="inline-block h-2 w-2 rounded-full bg-sky-400/70"></span>
+                <span>Echo · <span id="echo-state-label">Resting</span></span>
+              </p>
+              <p id="echo-summary" class="text-xs text-slate-600">
+                Echo is resting. Awaiting telemetry.
+              </p>
+              <p id="story-status" class="text-sm text-error mt-1 hidden"></p>
+            </div>
+          </div>
+
+        </div>
+      </section>
+      <!-- Right Panel: Episode Log -->
+      <section class="w-full xl:w-80 flex-shrink-0 flex flex-col gap-6">
+        <div class="flex items-center gap-3 mb-4">
+          <span class="material-symbols-outlined text-outline" style="">history</span>
+          <h2 class="text-headline-lg font-headline text-on-surface" style="">Episode Log</h2>
+        </div>
+        <div class="relative pl-6 border-l-2 border-outline-variant/30 border-dashed space-y-10" id="timelineContainer">
+          <div class="text-outline-variant italic">Waiting for run to start...</div>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script src="app.js"></script>
 </body>
+
 </html>
