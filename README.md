@@ -11,11 +11,9 @@ pinned: false
 
 **An environment for figuring out when your AI teammate should shut up — and when it should actually step in to save you.**
 
-> **🚀 Live Demo** — [Open the Dashboard on Hugging Face Spaces](https://maybesomeone19-cognitive-companion-openenv.hf.space/dashboard/index.html)
+> **🚀 Live Demo** — [Open the Dashboard on Hugging Face Spaces](https://huggingface.co/spaces/MaybeSomeone19/cognitive-companion-openenv)
 
-![Cognitive Companion Dashboard](https://raw.githubusercontent.com/MaybeSomeone-arc18/cognitive-companion-openenv/main/dashboard/screenshot.png)
 
----
 
 ## The Problem
 
