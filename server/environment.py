@@ -32,6 +32,7 @@ class CognitiveCompanionEnvironment(Environment[Action, CognitiveObservation, En
         self._max_steps: int = 30
         self._done: bool = False
         self._history: List[str] = []
+        self._rng = random.Random()
 
         # Embedded Q-Learning metrics
         self.q_table: Dict[str, Dict[str, float]] = {}
@@ -70,6 +71,8 @@ class CognitiveCompanionEnvironment(Environment[Action, CognitiveObservation, En
         episode_id: Optional[str] = None,
         **kwargs: Any,
     ) -> CognitiveObservation:
+        if seed is not None:
+            self._rng.seed(seed)
         difficulty = kwargs.get("difficulty", "medium")
         clear_qtable = kwargs.get("clear_qtable", False)
 
@@ -85,17 +88,17 @@ class CognitiveCompanionEnvironment(Environment[Action, CognitiveObservation, En
         self._done = False
 
         if difficulty == "easy":
-            stuck_level = random.uniform(0.1, 0.3)
+            stuck_level = self._rng.uniform(0.1, 0.3)
             time_left = 30
         elif difficulty == "hard":
-            stuck_level = random.uniform(0.6, 0.9)
+            stuck_level = self._rng.uniform(0.6, 0.9)
             time_left = 20
         else:  # medium
-            stuck_level = random.uniform(0.3, 0.6)
+            stuck_level = self._rng.uniform(0.3, 0.6)
             time_left = 25
 
         self._obs = CognitiveObservation(
-            task_type=random.choice(["coding", "content"]),
+            task_type=self._rng.choice(["coding", "content"]),
             progress=0.01,
             stuck_level=stuck_level,
             time_left=time_left,
@@ -139,40 +142,40 @@ class CognitiveCompanionEnvironment(Environment[Action, CognitiveObservation, En
         # ----- Transition logic -----
 
         if act_str == "continue":
-            base_inc = random.uniform(0.05, 0.15)
+            base_inc = self._rng.uniform(0.05, 0.15)
             actual_inc = base_inc * (0.99 - s.stuck_level)
             s.progress += actual_inc
 
             if s.stuck_level > 0.7:
-                s.stuck_level += random.uniform(0.05, 0.15)
+                s.stuck_level += self._rng.uniform(0.05, 0.15)
                 reward = -0.4 if s.stuck_level > 0.8 else -0.2
             elif 0.4 <= s.stuck_level <= 0.7:
-                s.stuck_level += random.uniform(-0.02, 0.08)
+                s.stuck_level += self._rng.uniform(-0.02, 0.08)
                 reward = 0.05
             else:
-                s.stuck_level -= random.uniform(0.02, 0.08)
+                s.stuck_level -= self._rng.uniform(0.02, 0.08)
                 reward = 0.2 if actual_inc > 0.03 else 0.1
 
         elif act_str == "intervene":
             if s.stuck_level > 0.6:
-                s.progress += random.uniform(0.2, 0.4)
-                s.stuck_level -= random.uniform(0.3, 0.6)
-                reward = random.uniform(0.5, 0.6)
+                s.progress += self._rng.uniform(0.2, 0.4)
+                s.stuck_level -= self._rng.uniform(0.3, 0.6)
+                reward = self._rng.uniform(0.5, 0.6)
             else:
-                s.progress += random.uniform(0.01, 0.02)
-                s.stuck_level += random.uniform(0.05, 0.15)
+                s.progress += self._rng.uniform(0.01, 0.02)
+                s.stuck_level += self._rng.uniform(0.05, 0.15)
                 reward = -0.3
 
         elif act_str == "switch_task":
             s.task_type = "content" if s.task_type == "coding" else "coding"
-            s.progress *= random.uniform(0.5, 0.8)
+            s.progress *= self._rng.uniform(0.5, 0.8)
 
             if s.stuck_level > 0.8 and s.progress < 0.2 and s.time_left <= 10:
                 reward = 0.3
             else:
                 reward = -0.2
 
-            s.stuck_level = random.uniform(0.01, 0.2)
+            s.stuck_level = self._rng.uniform(0.01, 0.2)
 
         else:
             raise ValueError(f"Unknown action: {act_str}")
